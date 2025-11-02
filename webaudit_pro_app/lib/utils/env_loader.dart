@@ -44,11 +44,6 @@ class EnvConfig {
     return _safeGet('SUPABASE_ANON_KEY');
   }
 
-  /// Get Supabase service role key from environment (backend only!)
-  static String? getSupabaseServiceRoleKey() {
-    return _safeGet('SUPABASE_SERVICE_ROLE_KEY');
-  }
-
   /// Get environment (development, staging, production)
   static String getEnvironment() {
     return _safeGet('ENVIRONMENT') ?? 'development';
