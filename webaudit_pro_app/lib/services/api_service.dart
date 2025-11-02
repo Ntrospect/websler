@@ -320,14 +320,16 @@ class ApiService extends ChangeNotifier {
 
       debugPrint('📄 Generating PDF: $documentType');
 
+      // Build request body - only include non-null fields
+      final Map<String, dynamic> requestBody = {};
+      if (clientName != null) requestBody['client_name'] = clientName;
+      if (companyName != null) requestBody['company_name'] = companyName;
+      if (companyDetails != null) requestBody['company_details'] = companyDetails;
+
       final response = await http.post(
         Uri.parse('$_apiUrl/api/audit/generate-pdf/$auditId/$documentType'),
         headers: _buildHeaders(),
-        body: jsonEncode({
-          'client_name': clientName,
-          'company_name': companyName,
-          'company_details': companyDetails,
-        }),
+        body: jsonEncode(requestBody),
       ).timeout(const Duration(seconds: 60));
 
       if (response.statusCode == 200) {
