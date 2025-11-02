@@ -22,7 +22,7 @@ from urllib.parse import urlparse
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
-from fastapi import FastAPI, HTTPException, Query, Header
+from fastapi import FastAPI, HTTPException, Query, Header, Depends
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -225,6 +225,22 @@ def extract_user_id_from_jwt(authorization_header: Optional[str]) -> str:
         raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
 
 
+def get_current_user(authorization: Optional[str] = Header(None, alias="Authorization")) -> str:
+    """
+    FastAPI dependency to extract and validate user ID from JWT token.
+
+    This dependency can be injected into any route that requires authentication.
+    Raises 401 if token is missing, malformed, or invalid.
+
+    Usage:
+        @app.post("/endpoint")
+        async def protected_route(user_id: str = Depends(get_current_user)):
+            # user_id is guaranteed to be valid here
+            ...
+    """
+    return extract_user_id_from_jwt(authorization)
+
+
 # ==================== Storage ====================
 
 # Use simple JSON files for history (in production, use PostgreSQL)
@@ -293,20 +309,21 @@ async def sentry_debug():
 
 
 @app.post("/api/analyze", response_model=AnalysisResult)
-async def analyze_url(request: AnalyzeRequest, authorization: str = Header(None)):
+async def analyze_url(
+    request: AnalyzeRequest,
+    user_id: str = Depends(get_current_user)
+):
     """
     Analyze a website and generate a summary.
 
     Args:
         request: AnalyzeRequest with URL and optional timeout
-        authorization: JWT token from Authorization header
+        user_id: Authenticated user ID (injected via dependency)
 
     Returns:
         AnalysisResult with ID, URL, title, description, and summary
     """
     try:
-        # Extract user_id from JWT token
-        user_id = extract_user_id_from_jwt(authorization)
 
         api_key = os.getenv('ANTHROPIC_API_KEY')
         if not api_key:
