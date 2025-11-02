@@ -720,17 +720,15 @@ async def clear_audit_history():
 
 # ==================== PDF Generation Endpoints ====================
 
-class PDFRequest(BaseModel):
-    """Request model for PDF generation."""
-    audit_id: str
-    document_type: str  # "audit-report", "improvement-plan", or "partnership-proposal"
+class AuditPDFRequest(BaseModel):
+    """Request model for audit PDF generation (audit_id and document_type are path parameters)."""
     client_name: Optional[str] = None
     company_name: str = "WebAudit Pro"
     company_details: Optional[str] = None
 
 
 @app.post("/api/audit/generate-pdf/{audit_id}/{document_type}")
-async def generate_audit_pdf(audit_id: str, document_type: str, request: Optional[PDFRequest] = None):
+async def generate_audit_pdf(audit_id: str, document_type: str, request: Optional[AuditPDFRequest] = None):
     """
     Generate PDF report from an audit.
 

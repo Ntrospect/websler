@@ -97,6 +97,9 @@ class AuthService extends ChangeNotifier {
           tokenExpiresAt: expiresAt,
         );
 
+        // Update ApiService with auth token
+        _apiService?.setAuthToken(session.accessToken);
+
         // Fetch user profile from local DB or create it
         await _loadOrCreateUserProfile(session.user!.id, session.user!.email ?? '');
       } else if (savedUserId != null && savedAuthToken != null) {
@@ -107,6 +110,9 @@ class AuthService extends ChangeNotifier {
           email: savedEmail ?? '',
           authToken: savedAuthToken,
         );
+
+        // Update ApiService with cached auth token
+        _apiService?.setAuthToken(savedAuthToken);
       }
 
       notifyListeners();

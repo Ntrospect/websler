@@ -40,8 +40,11 @@ class ApiService extends ChangeNotifier {
   void setAuthToken(String? token) {
     _authToken = token;
     if (token != null) {
+      final preview = token.length > 20 ? '${token.substring(0, 20)}...' : token;
+      print('🔑 ApiService: Auth token SET: $preview');
       _prefs.setString('auth_token', token);
     } else {
+      print('🔑 ApiService: Auth token CLEARED');
       _prefs.remove('auth_token');
     }
     notifyListeners();
@@ -55,7 +58,11 @@ class ApiService extends ChangeNotifier {
     };
 
     if (_authToken != null) {
+      final preview = _authToken!.length > 20 ? '${_authToken!.substring(0, 20)}...' : _authToken!;
+      print('📤 ApiService: Including Authorization header: Bearer $preview');
       headers['Authorization'] = 'Bearer $_authToken';
+    } else {
+      print('⚠️ ApiService: NO AUTH TOKEN - Authorization header not included!');
     }
 
     return headers;
@@ -317,10 +324,7 @@ class ApiService extends ChangeNotifier {
         Uri.parse('$_apiUrl/api/audit/generate-pdf/$auditId/$documentType'),
         headers: _buildHeaders(),
         body: jsonEncode({
-          'audit_id': auditId,
-          'document_type': documentType,
           'client_name': clientName,
-          'logo_url': logoUrl,
           'company_name': companyName,
           'company_details': companyDetails,
         }),
