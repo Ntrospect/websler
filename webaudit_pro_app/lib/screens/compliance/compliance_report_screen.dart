@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/compliance_audit.dart';
 import '../../services/api_service.dart';
+import '../../services/theme_provider.dart';
 
 class ComplianceReportScreen extends StatefulWidget {
   final ComplianceAudit compliance;
@@ -39,24 +40,38 @@ class _ComplianceReportScreenState extends State<ComplianceReportScreen>
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 800;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Compliance Report'),
-        centerTitle: true,
-        elevation: 0,
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabs: widget.compliance.jurisdictions.map((jurisdiction) {
-            final emoji = ComplianceAudit.getJurisdictionEmoji(jurisdiction);
-            final name = ComplianceAudit.getJurisdictionName(jurisdiction);
-            return Tab(
-              text: '$emoji $name',
-              icon: const SizedBox.shrink(),
-            );
-          }).toList(),
-        ),
-      ),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        final isDarkMode = themeProvider.isDarkMode;
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Compliance Report'),
+            centerTitle: true,
+            elevation: 0,
+            actions: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Image.asset(
+                  isDarkMode ? 'assets/websler_pro-dark-theme.png' : 'assets/websler_pro.png',
+                  height: 40,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ],
+            bottom: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabs: widget.compliance.jurisdictions.map((jurisdiction) {
+                final emoji = ComplianceAudit.getJurisdictionEmoji(jurisdiction);
+                final name = ComplianceAudit.getJurisdictionName(jurisdiction);
+                return Tab(
+                  text: '$emoji $name',
+                  icon: const SizedBox.shrink(),
+                );
+              }).toList(),
+            ),
+          ),
       body: SingleChildScrollView(
         child: Padding(
           padding: EdgeInsets.symmetric(
@@ -136,6 +151,8 @@ class _ComplianceReportScreenState extends State<ComplianceReportScreen>
           ),
         ),
       ),
+        );
+      },
     );
   }
 
