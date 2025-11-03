@@ -270,30 +270,33 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                       Divider(height: 1, color: Colors.grey[300]),
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
-                        child: TabBar(
-                          controller: _tabController,
-                          labelPadding: const EdgeInsets.symmetric(horizontal: 16),
-                        tabs: [
-                          _buildTab(
-                            label: 'Summary',
-                            icon: Icons.summarize,
-                            count: _summaries.length,
-                            color: Colors.blue,
+                        child: SizedBox(
+                          height: 90,
+                          child: TabBar(
+                            controller: _tabController,
+                            labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+                          tabs: [
+                            _buildTab(
+                              label: 'Summary',
+                              icon: Icons.summarize,
+                              count: _summaries.length,
+                              color: Colors.blue,
+                            ),
+                            _buildTab(
+                              label: 'WebAudit Pro',
+                              icon: Icons.assessment,
+                              count: _audits.length,
+                              color: Colors.green,
+                            ),
+                            _buildTab(
+                              label: 'Compliance',
+                              icon: Icons.gavel,
+                              count: _complianceHistory.length,
+                              color: Colors.purple,
+                            ),
+                          ],
+                        ),
                           ),
-                          _buildTab(
-                            label: 'WebAudit Pro',
-                            icon: Icons.assessment,
-                            count: _audits.length,
-                            color: Colors.green,
-                          ),
-                          _buildTab(
-                            label: 'Compliance',
-                            icon: Icons.gavel,
-                            count: _complianceHistory.length,
-                            color: Colors.purple,
-                          ),
-                        ],
-                      ),
                         ),
                     ],
                   ),
