@@ -171,10 +171,11 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS - Allow requests from Flutter apps
+# Configure CORS - nginx handles CORS headers, FastAPI should not send any
+# Setting allow_origins=[] prevents duplicate CORS headers
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For production, restrict to your domain
+    allow_origins=[],  # Empty - nginx handles CORS
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
