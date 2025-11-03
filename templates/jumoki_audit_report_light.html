@@ -187,7 +187,7 @@
         <div class="header">
             <div class="logo-container">
                 {% if websler_logo %}
-                    <img src="data:image/svg+xml,{{ websler_logo }}" alt="Websler">
+                    <img src="data:image/svg+xml;base64,{{ websler_logo }}" alt="Websler">
                 {% endif %}
             </div>
             <h1>WebAudit Pro Report</h1>
@@ -260,7 +260,7 @@
         <div class="footer">
             {% if jumoki_logo %}
             <div style="margin-bottom: 6px;">
-                <img src="data:image/svg+xml,{{ jumoki_logo }}" alt="Jumoki" style="height: 60px; width: auto;">
+                <img src="data:image/svg+xml;base64,{{ jumoki_logo }}" alt="Jumoki" style="height: 60px; width: auto;">
             </div>
             {% endif %}
             {% if company_name %}
