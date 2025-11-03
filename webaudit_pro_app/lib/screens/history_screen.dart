@@ -264,17 +264,14 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                 backgroundColor: _isScrolled ? scrolledBgColor : bgColor,
                 surfaceTintColor: bgColor,
                 bottom: PreferredSize(
-                  preferredSize: const Size.fromHeight(110),
+                  preferredSize: const Size.fromHeight(60),
                   child: Column(
                     children: [
                       Divider(height: 1, color: Colors.grey[300]),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8, bottom: 8),
-                        child: SizedBox(
-                          height: 90,
-                          child: TabBar(
+                      TabBar(
                             controller: _tabController,
-                            labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+                            isScrollable: true,
+                            labelPadding: const EdgeInsets.symmetric(horizontal: 12),
                           tabs: [
                             _buildTab(
                               label: 'Summary',
@@ -295,8 +292,6 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                               color: Colors.purple,
                             ),
                           ],
-                        ),
-                          ),
                         ),
                     ],
                   ),
@@ -356,45 +351,40 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
     required Color color,
   }) {
     return Tab(
-      child: Padding(
-        padding: const EdgeInsets.only(top: 4, bottom: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 40),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontFamily: 'Raleway',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 22),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              fontFamily: 'Raleway',
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
+          ),
+          if (count > 0) ...[
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: color.withOpacity(0.3), width: 1),
+              ),
+              child: Text(
+                count.toString(),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: color,
                 ),
-                const SizedBox(width: 8),
-                if (count > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      count.toString(),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                      ),
-                    ),
-                  ),
-              ],
+              ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
