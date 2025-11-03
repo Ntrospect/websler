@@ -54,11 +54,6 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final uri = Uri.parse(processedUrl);
 
-      // Check if scheme is valid (should be http or https)
-      if (!['http', 'https'].contains(uri.scheme)) {
-        return 'URL must use http:// or https:// protocol';
-      }
-
       // Check if host is present
       if (uri.host.isEmpty) {
         return 'Please enter a valid domain (e.g., example.com)';
