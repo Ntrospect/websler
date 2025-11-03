@@ -765,19 +765,36 @@ async def generate_audit_pdf(audit_id: str, document_type: str, request: Optiona
         company_details = (request.company_details if request else "")
 
         # Generate PDF
-        generator = WebAuditReportGenerator()
         pdf_path = f"/tmp/{audit_id}_{document_type}.pdf"
 
         if document_type == "audit-report":
-            generator.generate_audit_report(
-                audit_data,
-                pdf_path,
+            # Use Playwright HTML template for modern, branded PDFs
+            api_key = os.getenv('ANTHROPIC_API_KEY')
+            analyzer = WebsiteAnalyzer(api_key=api_key)
+
+            # Convert audit_data to format expected by generate_pdf_playwright
+            audit_result = {
+                'url': audit_data.get('url', ''),
+                'overall_score': audit_data.get('overall_score', 0),
+                'scores': audit_data.get('scores', {}),
+                'key_strengths': audit_data.get('key_strengths', []),
+                'website_name': audit_data.get('website_name', 'Website'),
+                'audit_timestamp': audit_data.get('audit_timestamp', '')
+            }
+
+            analyzer.generate_pdf_playwright(
+                audit_result,
+                is_audit=True,
+                output_path=pdf_path,
                 company_name=company_name,
-                company_details=company_details
+                company_details=company_details,
+                use_dark_theme=False,
+                template='jumoki'
             )
             filename = f"audit-report_{audit_id[:8]}.pdf"
 
         elif document_type == "improvement-plan":
+            generator = WebAuditReportGenerator()
             generator.generate_improvement_plan(
                 audit_data,
                 pdf_path,
@@ -788,6 +805,7 @@ async def generate_audit_pdf(audit_id: str, document_type: str, request: Optiona
             filename = f"improvement-plan_{audit_id[:8]}.pdf"
 
         elif document_type == "partnership-proposal":
+            generator = WebAuditReportGenerator()
             generator.generate_partnership_proposal(
                 audit_data,
                 pdf_path,
