@@ -6,7 +6,6 @@ import '../theme/spacing.dart';
 import '../theme/button_styles.dart';
 import '../widgets/styled_card.dart';
 import '../widgets/app_badge.dart';
-import 'audit_reports_screen.dart';
 import 'criterion_detail_screen.dart';
 import 'compliance/compliance_selection_screen.dart';
 
@@ -129,21 +128,6 @@ class _AuditResultsScreenState extends State<AuditResultsScreen> {
               // Priority Recommendations
               _buildRecommendationsSection(context),
               const SizedBox(height: AppSpacing.sectionGap),
-
-              // View Reports Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => _navigateToReports(),
-                  icon: const Icon(Icons.file_download_outlined),
-                  label: const Text(
-                    'View Reports & Download PDFs',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  style: AppButtonStyles.primaryElevatedButton(context),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
 
               // Compliance Audit Button
               SizedBox(
@@ -584,17 +568,6 @@ class _AuditResultsScreenState extends State<AuditResultsScreen> {
           },
         ),
       ],
-    );
-  }
-
-  void _navigateToReports() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AuditReportsScreen(
-          auditResult: _auditResult,
-        ),
-      ),
     );
   }
 
