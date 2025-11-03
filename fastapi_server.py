@@ -1410,6 +1410,47 @@ async def get_compliance_audit(
         raise HTTPException(status_code=500, detail=f"Failed to retrieve audit: {str(e)}")
 
 
+@app.delete("/api/compliance-audit/{compliance_id}")
+async def delete_compliance_audit(
+    compliance_id: str,
+    authorization: str = Header(None)
+):
+    """
+    Delete a compliance audit from history.
+
+    Args:
+        compliance_id: UUID of the compliance audit
+        authorization: Bearer token for user authentication
+
+    Returns:
+        Confirmation message
+    """
+    try:
+        user_id = extract_user_id_from_jwt(authorization)
+
+        # Use service role client for deletion (bypasses RLS auth check, but we verify user_id manually)
+        query_client = supabase_service if supabase_service else supabase
+        if not query_client:
+            raise HTTPException(status_code=500, detail="Supabase not configured")
+
+        # Verify audit exists and belongs to user
+        result = query_client.table('compliance_audits').select('id').eq('id', compliance_id).eq('user_id', user_id).execute()
+
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Compliance audit not found")
+
+        # Delete the audit
+        delete_result = query_client.table('compliance_audits').delete().eq('id', compliance_id).eq('user_id', user_id).execute()
+
+        return {"status": "deleted", "id": compliance_id}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise HTTPException(status_code=500, detail=f"Failed to delete compliance audit: {str(e)}")
+
+
 @app.get("/api/compliance/generate-pdf/{compliance_id}")
 async def generate_compliance_pdf(
     compliance_id: str,
