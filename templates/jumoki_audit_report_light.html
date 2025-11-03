@@ -205,12 +205,12 @@
             </div>
             <div>
                 <div class="metadata-label">Overall Score</div>
-                <div class="metadata-value" style="color: #9018ad; font-weight: 700;">{{ overall_score|round(1) }}/10</div>
+                <div class="metadata-value" style="color: #9018ad; font-weight: 700;">{{ overall_score|default(0)|round(1) }}/10</div>
             </div>
         </div>
 
         <div class="overall-score">
-            <div class="score-number">{{ overall_score|round(1) }}</div>
+            <div class="score-number">{{ overall_score|default(0)|round(1) }}</div>
             <div class="score-label">Overall Website Score</div>
         </div>
 

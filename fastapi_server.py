@@ -476,7 +476,7 @@ async def generate_pdf(request: PDFRequest):
 
         # Generate PDF to BytesIO
         pdf_path = f"/tmp/{request.analysis_id}.pdf"
-        analyzer.generate_pdf_playwright(
+        await analyzer.generate_pdf_playwright(
             result,
             is_audit=False,
             output_path=pdf_path,
@@ -782,14 +782,15 @@ async def generate_audit_pdf(audit_id: str, document_type: str, request: Optiona
                 'audit_timestamp': audit_data.get('audit_timestamp', '')
             }
 
-            analyzer.generate_pdf_playwright(
+            await analyzer.generate_pdf_playwright(
                 audit_result,
                 is_audit=True,
                 output_path=pdf_path,
                 company_name=company_name,
                 company_details=company_details,
                 use_dark_theme=False,
-                template='jumoki'
+                template='jumoki',
+                audit_data=audit_result
             )
             filename = f"audit-report_{audit_id[:8]}.pdf"
 

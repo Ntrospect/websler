@@ -28,7 +28,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Tabl
 from reportlab.lib import colors
 
 try:
-    from playwright.sync_api import sync_playwright
+    from playwright.async_api import async_playwright
     PLAYWRIGHT_AVAILABLE = True
 except ImportError:
     PLAYWRIGHT_AVAILABLE = False
@@ -434,7 +434,7 @@ Summary:"""
             print(f"Error encoding image {image_path}: {str(e)}")
             return None
 
-    def generate_pdf_playwright(
+    async def generate_pdf_playwright(
         self,
         result: Dict,
         is_audit: bool = False,
@@ -529,20 +529,20 @@ Summary:"""
 
         # Generate PDF using Playwright
         try:
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True)
-                page = browser.new_page(
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+                page = await browser.new_page(
                     viewport={'width': 1024, 'height': 1280}
                 )
 
                 # Set the HTML content
-                page.set_content(html_content)
+                await page.set_content(html_content)
 
                 # Wait for any images to load
-                page.wait_for_load_state('networkidle')
+                await page.wait_for_load_state('networkidle')
 
                 # Generate PDF
-                page.pdf(
+                await page.pdf(
                     path=output_path,
                     format='A4',
                     margin={
@@ -554,7 +554,7 @@ Summary:"""
                     print_background=True
                 )
 
-                browser.close()
+                await browser.close()
 
             return output_path
 
