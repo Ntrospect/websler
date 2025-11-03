@@ -776,7 +776,7 @@ async def generate_audit_pdf(audit_id: str, document_type: str, request: Optiona
             audit_result = {
                 'url': audit_data.get('url', ''),
                 'overall_score': audit_data.get('overall_score', 0),
-                'scores': audit_data.get('scores', {}),
+                'categories': audit_data.get('scores', {}),  # Renamed: scores → categories for template
                 'key_strengths': audit_data.get('key_strengths', []),
                 'website_name': audit_data.get('website_name', 'Website'),
                 'audit_timestamp': audit_data.get('audit_timestamp', '')
