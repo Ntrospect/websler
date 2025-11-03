@@ -54,12 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final uri = Uri.parse(processedUrl);
 
-      // Check if scheme is present (should always be true now)
-      if (uri.scheme.isEmpty) {
-        return 'URL must start with http:// or https://';
-      }
-
-      // Check if scheme is valid
+      // Check if scheme is valid (should be http or https)
       if (!['http', 'https'].contains(uri.scheme)) {
         return 'URL must use http:// or https:// protocol';
       }
@@ -395,20 +390,24 @@ class _HomeScreenState extends State<HomeScreen> {
             if (_error != null) ...[
               const SizedBox(height: AppSpacing.sm),
               Container(
-                padding: const EdgeInsets.all(AppSpacing.sm),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.shade900.withOpacity(0.8),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red),
+                  border: Border.all(color: Colors.red.shade400, width: 1.5),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.white, size: 18),
-                    const SizedBox(width: AppSpacing.sm),
+                    const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         _error!,
-                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
