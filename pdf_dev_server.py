@@ -256,6 +256,7 @@ class PDFPreviewHandler(SimpleHTTPRequestHandler):
                 <select id="templateType">
                     <option value="summary">Summary Report</option>
                     <option value="audit">Audit Report</option>
+                    <option value="compliance">Compliance Report</option>
                 </select>
             </div>
 
@@ -528,6 +529,70 @@ class PDFPreviewHandler(SimpleHTTPRequestHandler):
                 'websler_logo': websler_pro_logo,
                 'jumoki_logo': jumoki_logo
             }
+
+        # Compliance-specific test data
+        if template_type == 'compliance':
+            base_data = {
+                'url': 'https://example.com' if source == 'example' else 'https://github.com',
+                'site_title': 'Example Domain' if source == 'example' else 'GitHub: Let\'s build from here',
+                'report_date': datetime.now().strftime('%B %d, %Y'),
+                'timestamp': datetime.now().strftime('%B %d, %Y at %I:%M %p'),
+                'jurisdictions': ['AU', 'NZ', 'GDPR', 'CCPA'],
+                'overall_score': 40 if source == 'example' else 72,
+                'risk_level': 'High' if source == 'example' else 'Medium',
+                'score_color': '#DC2626' if source == 'example' else '#F59E0B',
+                'score_color_dark': '#B91C1C' if source == 'example' else '#D97706',
+                'jurisdiction_scores': {
+                    'Australia (AU)': {'score': 45 if source == 'example' else 75},
+                    'New Zealand (NZ)': {'score': 42 if source == 'example' else 70},
+                    'GDPR (EU)': {'score': 38 if source == 'example' else 68},
+                    'CCPA (California)': {'score': 35 if source == 'example' else 74}
+                },
+                'critical_issues': [
+                    'No privacy policy found on website',
+                    'Missing cookie consent banner (required for GDPR)',
+                    'No data breach notification procedure documented',
+                    'Terms of Service lacks required consumer protection clauses',
+                    'Website accessibility does not meet WCAG 2.1 Level AA standards'
+                ] if source == 'example' else [
+                    'Privacy policy could be more prominent in footer',
+                    'Some third-party cookies lack explicit consent mechanisms'
+                ],
+                'remediation_roadmap': {
+                    'immediate': [
+                        'Implement compliant privacy policy covering all operating jurisdictions',
+                        'Add GDPR-compliant cookie consent banner with granular controls',
+                        'Display Terms of Service prominently with Australian Consumer Law compliance',
+                        'Add contact page with physical business address and phone number'
+                    ] if source == 'example' else [
+                        'Update privacy policy to reflect recent regulatory changes',
+                        'Enhance cookie consent UI with clearer opt-out options'
+                    ],
+                    'short_term': [
+                        'Conduct full accessibility audit and remediate WCAG 2.1 AA failures',
+                        'Implement data breach response plan with notification workflows',
+                        'Add unsubscribe mechanisms to all marketing communications',
+                        'Document data retention and deletion policies'
+                    ] if source == 'example' else [
+                        'Review and update data retention policies',
+                        'Implement automated compliance monitoring'
+                    ],
+                    'long_term': [
+                        'Establish ongoing compliance monitoring program',
+                        'Train staff on privacy and consumer protection obligations',
+                        'Implement automated cookie consent management platform',
+                        'Conduct regular third-party security and compliance audits'
+                    ] if source == 'example' else [
+                        'Establish regular third-party audits',
+                        'Enhance data governance framework'
+                    ]
+                },
+                'company_name': 'Jumoki Agency LLC',
+                'company_details': '1309 Coffeen Avenue STE 1200, Sheridan WY 82801, 1(307)650-2395, info@jumoki.agency',
+                'websler_logo': websler_pro_logo,
+                'jumoki_logo': jumoki_logo
+            }
+            return base_data
 
     def render_pdf_to_bytes(self, template_type, theme, data):
         """Render PDF template to bytes using Playwright"""
