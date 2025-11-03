@@ -47,7 +47,7 @@ class _ComplianceReportScreenState extends State<ComplianceReportScreen>
         return Scaffold(
           appBar: AppBar(
             title: const Text('Compliance Report'),
-            centerTitle: true,
+            titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             elevation: 0,
             actions: [
               Padding(
