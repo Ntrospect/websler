@@ -31,7 +31,7 @@ from pydantic import BaseModel
 from supabase import create_client, Client
 from anthropic import Anthropic
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from playwright.sync_api import sync_playwright
+from playwright.async_api import async_playwright
 
 from analyzer import WebsiteAnalyzer
 from audit_engine import WebsiteAuditor
@@ -1524,14 +1524,14 @@ async def generate_compliance_pdf(
         # Render HTML
         html_content = template.render(compliance_context)
 
-        # Generate PDF using Playwright
+        # Generate PDF using Playwright (async API)
         try:
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True)
-                page = browser.new_page(viewport={'width': 1024, 'height': 1280})
-                page.set_content(html_content)
-                page.wait_for_load_state('networkidle')
-                page.pdf(
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+                page = await browser.new_page(viewport={'width': 1024, 'height': 1280})
+                await page.set_content(html_content)
+                await page.wait_for_load_state('networkidle')
+                await page.pdf(
                     path=pdf_path,
                     format='A4',
                     margin={
@@ -1542,7 +1542,7 @@ async def generate_compliance_pdf(
                     },
                     print_background=True
                 )
-                browser.close()
+                await browser.close()
         except Exception as e:
             raise HTTPException(
                 status_code=500,
