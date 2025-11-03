@@ -128,26 +128,47 @@ class ApiService extends ChangeNotifier {
   /// Returns: filepath (desktop/mobile) or empty string (web, opens in new tab)
   Future<String> generatePdf(
     String analysisId, {
+    bool isAudit = false,
     String? logoUrl,
     String? companyName,
     String? companyDetails,
     String template = 'jumoki',
   }) async {
     try {
-      debugPrint('📄 Generating summary PDF (light theme)');
+      debugPrint('📄 Generating ${isAudit ? "audit" : "summary"} PDF (light theme)');
 
-      final response = await http.post(
-        Uri.parse('$_apiUrl/api/pdf'),
-        headers: _buildHeaders(),
-        body: jsonEncode({
-          'analysis_id': analysisId,
-          'logo_url': logoUrl,
-          'company_name': companyName,
-          'company_details': companyDetails,
-          'template': template,
-          'theme': 'light',
-        }),
-      ).timeout(const Duration(seconds: 30));
+      // Use different endpoints for summaries vs audits
+      final Uri uri;
+      final http.Response response;
+
+      if (isAudit) {
+        // Audits use a different endpoint
+        uri = Uri.parse('$_apiUrl/api/audit/generate-pdf/$analysisId/audit-report');
+        final body = <String, dynamic>{};
+        if (companyName != null) body['company_name'] = companyName;
+        if (companyDetails != null) body['company_details'] = companyDetails;
+
+        response = await http.post(
+          uri,
+          headers: _buildHeaders(),
+          body: jsonEncode(body),
+        ).timeout(const Duration(seconds: 30));
+      } else {
+        // Summaries use the original endpoint
+        uri = Uri.parse('$_apiUrl/api/pdf');
+        response = await http.post(
+          uri,
+          headers: _buildHeaders(),
+          body: jsonEncode({
+            'analysis_id': analysisId,
+            'logo_url': logoUrl,
+            'company_name': companyName,
+            'company_details': companyDetails,
+            'template': template,
+            'theme': 'light',
+          }),
+        ).timeout(const Duration(seconds: 30));
+      }
 
       if (response.statusCode == 200) {
         final filename = 'weblser-analysis-${DateTime.now().millisecondsSinceEpoch}.pdf';

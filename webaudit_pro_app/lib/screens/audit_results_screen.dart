@@ -617,6 +617,7 @@ class _AuditResultsScreenState extends State<AuditResultsScreen> {
       // Generate PDF using the existing audit data
       await apiService.generatePdf(
         _auditResult.id,
+        isAudit: true,
       );
 
       // Close loading dialog

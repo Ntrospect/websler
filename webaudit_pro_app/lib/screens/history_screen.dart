@@ -171,9 +171,10 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
         );
       }
 
-      // Generate PDF
+      // Generate PDF (use correct endpoint based on analysis type)
       await context.read<ApiService>().generatePdf(
         analysis.id,
+        isAudit: analysis.isAudit,
       );
 
       // Show success message
