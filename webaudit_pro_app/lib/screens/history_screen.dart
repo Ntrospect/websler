@@ -174,7 +174,6 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
       // Generate PDF
       await context.read<ApiService>().generatePdf(
         analysis.id,
-        isAudit: analysis.isAudit,
       );
 
       // Show success message
