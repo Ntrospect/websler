@@ -264,12 +264,12 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                 backgroundColor: _isScrolled ? scrolledBgColor : bgColor,
                 surfaceTintColor: bgColor,
                 bottom: PreferredSize(
-                  preferredSize: const Size.fromHeight(100),
+                  preferredSize: const Size.fromHeight(110),
                   child: Column(
                     children: [
                       Divider(height: 1, color: Colors.grey[300]),
                       Padding(
-                        padding: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.only(top: 8, bottom: 8),
                         child: SizedBox(
                           height: 90,
                           child: TabBar(
