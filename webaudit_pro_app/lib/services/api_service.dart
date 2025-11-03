@@ -424,36 +424,6 @@ class ApiService extends ChangeNotifier {
     }
   }
 
-  /// Generate PDF from unified analysis (works for both summaries and audits)
-  Future<String> generatePdfUnified(
-    WebsiteAnalysis analysis, {
-    String documentType = 'audit-report', // For audits
-    String? clientName,
-    String? logoUrl,
-    String? companyName,
-    String? companyDetails,
-  }) async {
-    try {
-      if (analysis.isSummary) {
-        // For summaries, use the weblser PDF generation
-        return await generatePdf(analysis.id,
-            logoUrl: logoUrl, companyName: companyName, companyDetails: companyDetails);
-      } else {
-        // For audits, use the audit PDF generation
-        return await generateAuditPdf(
-          analysis.id,
-          documentType,
-          clientName: clientName,
-          logoUrl: logoUrl,
-          companyName: companyName,
-          companyDetails: companyDetails,
-        );
-      }
-    } catch (e) {
-      throw Exception('Error generating PDF: $e');
-    }
-  }
-
   /// Upgrade a summary to a full audit (run audit on the same URL)
   Future<WebsiteAnalysis> upgradeToAudit(
     WebsiteAnalysis summary, {
