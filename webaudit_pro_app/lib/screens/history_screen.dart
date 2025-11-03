@@ -149,6 +149,60 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
     }
   }
 
+  Future<void> _downloadPdf(WebsiteAnalysis analysis) async {
+    try {
+      // Show loading indicator
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                ),
+                SizedBox(width: 12),
+                Text('Generating PDF...'),
+              ],
+            ),
+            duration: Duration(seconds: 30),
+          ),
+        );
+      }
+
+      // Generate PDF
+      await context.read<ApiService>().generatePdf(
+        analysis.id,
+        isAudit: analysis.isAudit,
+      );
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ PDF downloaded successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error downloading PDF: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
   void _upgradeToAudit(WebsiteAnalysis summary) async {
     // Show loading dialog
     showDialog(
@@ -570,15 +624,33 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
               PopupMenuButton(
                 itemBuilder: (context) => [
                   const PopupMenuItem(
+                    value: 'download',
+                    child: Row(
+                      children: [
+                        Icon(Icons.file_download_outlined),
+                        SizedBox(width: 8),
+                        Text('Download PDF'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
                     value: 'delete',
-                    child: Text(
-                      'Delete',
-                      style: TextStyle(color: Colors.red),
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text(
+                          'Delete',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ],
                     ),
                   ),
                 ],
                 onSelected: (value) {
-                  if (value == 'delete') {
+                  if (value == 'download') {
+                    _downloadPdf(analysis);
+                  } else if (value == 'delete') {
                     _deleteAnalysis(analysis);
                   }
                 },

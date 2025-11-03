@@ -129,6 +129,21 @@ class _AuditResultsScreenState extends State<AuditResultsScreen> {
               _buildRecommendationsSection(context),
               const SizedBox(height: AppSpacing.sectionGap),
 
+              // Download PDF Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _downloadAuditPdf(context),
+                  icon: const Icon(Icons.file_download_outlined),
+                  label: const Text(
+                    'Download PDF Report',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  style: AppButtonStyles.primaryElevatedButton(context),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+
               // Compliance Audit Button
               SizedBox(
                 width: double.infinity,
@@ -581,6 +596,57 @@ class _AuditResultsScreenState extends State<AuditResultsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _downloadAuditPdf(BuildContext context) async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        },
+      );
+
+      final apiService = Provider.of<ApiService>(context, listen: false);
+
+      // Generate PDF using the existing audit data
+      await apiService.generatePdf(
+        _auditResult.id,
+        isAudit: true,
+      );
+
+      // Close loading dialog
+      if (context.mounted) Navigator.of(context).pop();
+
+      // Show success message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ PDF downloaded successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (context.mounted) Navigator.of(context).pop();
+
+      // Show error message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error downloading PDF: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 }
 
