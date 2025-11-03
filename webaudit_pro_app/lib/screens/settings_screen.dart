@@ -859,7 +859,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         Text('App Version'),
                         Text(
-                          '1.2.1',
+                          '1.2.2',
                           style: TextStyle(color: Colors.grey[600]),
                         ),
                       ],
