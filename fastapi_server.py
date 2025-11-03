@@ -13,6 +13,7 @@ import json
 import os
 import uuid
 import jwt
+import base64
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict
@@ -29,6 +30,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from supabase import create_client, Client
 from anthropic import Anthropic
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+from playwright.sync_api import sync_playwright
 
 from analyzer import WebsiteAnalyzer
 from audit_engine import WebsiteAuditor
@@ -1444,8 +1447,7 @@ async def generate_compliance_pdf(
 
         audit_data = result.data[0]
 
-        # Generate PDF using Playwright
-        analyzer = WebsiteAnalyzer(api_key=anthropic_api_key)
+        # Prepare PDF generation
         pdf_path = f"/tmp/compliance_{compliance_id[:8]}.pdf"
 
         # Prepare template context
@@ -1509,10 +1511,15 @@ async def generate_compliance_pdf(
         websler_logo_path = Path(__file__).parent / 'websler_pro.svg'
         jumoki_logo_path = Path(__file__).parent / 'jumoki_logov3.svg'
 
+        # Encode SVG logos for HTML embedding
         if websler_logo_path.exists():
-            compliance_context['websler_logo'] = analyzer._encode_image_to_base64(str(websler_logo_path))
+            with open(websler_logo_path, 'r', encoding='utf-8') as f:
+                svg_content = f.read()
+                compliance_context['websler_logo'] = base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
         if jumoki_logo_path.exists():
-            compliance_context['jumoki_logo'] = analyzer._encode_image_to_base64(str(jumoki_logo_path))
+            with open(jumoki_logo_path, 'r', encoding='utf-8') as f:
+                svg_content = f.read()
+                compliance_context['jumoki_logo'] = base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
 
         # Render HTML
         html_content = template.render(compliance_context)
