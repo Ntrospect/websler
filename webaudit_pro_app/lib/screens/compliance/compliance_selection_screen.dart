@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/compliance_audit.dart';
-import '../../models/audit_result.dart';
 import '../../services/api_service.dart';
+import '../../services/theme_provider.dart';
 import 'compliance_report_screen.dart';
 
 class ComplianceSelectionScreen extends StatefulWidget {
@@ -42,12 +42,26 @@ class _ComplianceSelectionScreenState extends State<ComplianceSelectionScreen> {
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 800;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Compliance Audit'),
-        centerTitle: true,
-        elevation: 0,
-      ),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        final isDarkMode = themeProvider.isDarkMode;
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Compliance Audit'),
+            titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            elevation: 0,
+            actions: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Image.asset(
+                  isDarkMode ? 'assets/websler_pro-dark-theme.png' : 'assets/websler_pro.png',
+                  height: 40,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ],
+          ),
       body: SingleChildScrollView(
         child: Padding(
           padding: EdgeInsets.symmetric(
@@ -163,6 +177,8 @@ class _ComplianceSelectionScreenState extends State<ComplianceSelectionScreen> {
           ),
         ),
       ),
+        );
+      },
     );
   }
 
