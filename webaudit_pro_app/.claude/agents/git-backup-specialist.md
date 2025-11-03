@@ -1,3 +1,7 @@
+---
+name: Git Backup Specialist
+---
+
 # Git Backup Specialist - Sub-Agent Specification
 
 ## Overview

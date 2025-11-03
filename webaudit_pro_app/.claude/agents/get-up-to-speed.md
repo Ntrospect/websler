@@ -1,3 +1,7 @@
+---
+name: Get Up To Speed
+---
+
 # Get-Up-To-Speed Specialist - Sub-Agent Specification
 
 **Agent Name**: `get-up-to-speed`
