@@ -1,4 +1,6 @@
-<!DOCTYPE html><html><head>
+<!DOCTYPE html>
+<html>
+<head>
   <!--
     If you are serving your web app in a path other than the root, change the
     href value below to reflect the base path you are serving from.
@@ -16,12 +18,12 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="WebAudit Pro - AI-Powered Website Analysis & Auditing Tool">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="weblser_app">
+  <meta name="apple-mobile-web-app-title" content="WebAudit Pro">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
@@ -29,18 +31,89 @@
 
   <title>WebAudit Pro - Website Audit Tool</title>
   <link rel="manifest" href="manifest.json">
-  <style id="splash-screen-style">
+
+  <style>
     html {
-      height: 100%
+      height: 100%;
     }
 
     body {
       margin: 0;
       min-height: 100%;
-      background-color: #0F1419;
-          background-size: 100% 100%;
+      background-color: #0A0E27;
+      background-size: 100% 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
 
+    /* Loading Screen Styles */
+    #loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #0A0E27;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.5s ease-out;
+    }
+
+    #loading-screen.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-logo {
+      width: 200px;
+      height: auto;
+      margin-bottom: 40px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.8;
+        transform: scale(0.98);
+      }
+    }
+
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(124, 58, 237, 0.2);
+      border-top-color: #7c3aed;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .loading-text {
+      margin-top: 24px;
+      color: #94a3b8;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+
+    /* Hide default Flutter splash elements */
+    #splash,
+    #splash-branding {
+      display: none !important;
+    }
+
+    /* Utility classes from original */
     .center {
       margin: 0;
       position: absolute;
@@ -86,34 +159,50 @@
       bottom: 0;
       right: 0;
     }
-
-    /* Hide default Flutter splash elements immediately */
-    #splash,
-    #splash-branding {
-      display: none !important;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      body {
-        background-color: #0A0E27;
-          }
-    }
   </style>
-  <script id="splash-screen-script">
+
+  <script>
+    // Remove default Flutter splash elements
     function removeSplashFromWeb() {
       document.getElementById("splash")?.remove();
       document.getElementById("splash-branding")?.remove();
       document.body.style.background = "transparent";
     }
 
-    // Remove default splash immediately on page load
-    // This prevents the flash before our custom Flutter splash appears
+    // Hide loading screen when Flutter is ready
+    function hideLoadingScreen() {
+      const loadingScreen = document.getElementById('loading-screen');
+      if (loadingScreen) {
+        loadingScreen.classList.add('fade-out');
+        setTimeout(() => {
+          loadingScreen.remove();
+        }, 500); // Match transition duration
+      }
+    }
+
+    // Listen for Flutter ready event
+    window.addEventListener('flutter-first-frame', function() {
+      hideLoadingScreen();
+    });
+
+    // Fallback: Hide after a maximum of 5 seconds
     window.addEventListener('load', function() {
       removeSplashFromWeb();
-    }, { once: true });
+      setTimeout(hideLoadingScreen, 5000);
+    });
   </script>
+
   <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async=""></script>
-</body></html>
+  <!-- Loading Screen -->
+  <div id="loading-screen">
+    <img src="assets/assets/websler_pro.png" alt="WebAudit Pro" class="loading-logo" />
+    <div class="loading-spinner"></div>
+    <p class="loading-text">Loading WebAudit Pro...</p>
+  </div>
+
+  <!-- Flutter Bootstrap -->
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
