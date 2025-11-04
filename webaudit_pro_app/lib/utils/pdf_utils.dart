@@ -4,8 +4,9 @@ import 'package:flutter/foundation.dart';
 
 /// Utility for handling PDF operations across platforms
 class PdfUtils {
-  /// Open PDF in a new browser tab (web only)
-  /// Uses Blob URLs for browser security compliance
+  /// Download PDF file in browser (web only)
+  /// Uses Blob URLs with download attribute for browser compatibility
+  /// Works on desktop and mobile browsers including iPad Safari/Firefox
   /// Returns true if successful, false otherwise
   static Future<bool> openPdfInNewTab(
     Uint8List pdfBytes,
@@ -17,12 +18,12 @@ class PdfUtils {
     }
 
     try {
-      debugPrint('🔍 Opening PDF in new tab: $filename');
+      debugPrint('🔍 Triggering PDF download: $filename');
 
-      // Create Blob from PDF bytes and open in new tab
+      // Create Blob from PDF bytes and trigger download
       _openPdfBlobInNewTab(pdfBytes, filename);
 
-      debugPrint('✅ PDF opened successfully in new tab');
+      debugPrint('✅ PDF download triggered successfully');
       return true;
     } catch (e) {
       debugPrint('❌ Error opening PDF: $e');
@@ -32,6 +33,7 @@ class PdfUtils {
 
   /// Opens PDF Blob in browser using JavaScript Blob URLs
   /// This approach is browser-secure (avoids data URL restrictions)
+  /// Uses download link for iPad/mobile browser compatibility
   static void _openPdfBlobInNewTab(Uint8List pdfBytes, String filename) {
     try {
       // Create a Blob from the PDF bytes
@@ -40,12 +42,25 @@ class PdfUtils {
       // Create a Blob URL
       final blobUrl = html.Url.createObjectUrl(blob);
 
-      // Open the Blob URL in a new tab
-      html.window.open(blobUrl, '_blank');
+      // Create an anchor element with download attribute
+      // This triggers actual download on iPad/mobile browsers
+      final anchor = html.AnchorElement(href: blobUrl)
+        ..setAttribute('download', filename)
+        ..style.display = 'none';
 
-      debugPrint('🔗 Opened blob URL: ${blobUrl.substring(0, 50)}...');
+      // Add to document, click, and remove
+      html.document.body?.append(anchor);
+      anchor.click();
+      anchor.remove();
+
+      // Clean up the object URL after a short delay
+      Future.delayed(const Duration(seconds: 1), () {
+        html.Url.revokeObjectUrl(blobUrl);
+      });
+
+      debugPrint('📥 Triggered download: $filename');
     } catch (e) {
-      debugPrint('Error creating/opening PDF blob: $e');
+      debugPrint('Error creating/downloading PDF blob: $e');
     }
   }
 }
