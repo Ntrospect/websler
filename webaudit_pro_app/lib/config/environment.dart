@@ -56,7 +56,7 @@ class AppConfig {
           // Production Supabase (live)
           url: 'https://vwnbhsmfpxdfcvqnzddc.supabase.co',
           anonKey:
-              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3bmJoc21mcHhkZmN2cW56ZGRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1MjAwOTMsImV4cCI6MjA3NzA5NjA5M30.2u4Fh_hrolEBeu5u_ADwZV_j3Bzq9szMBdkLZlc3b5M',
+              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3bmJoc21mcHhkZmN2cW56ZGRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIxNTg5MjMsImV4cCI6MjA3NzUxODkyM30.KNCWrSvMo6cOiABqERieO00D1bWNiNf6mI4-XdXS1bc',
         );
     }
   }

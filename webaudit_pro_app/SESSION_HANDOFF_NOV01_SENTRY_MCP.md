@@ -82,7 +82,7 @@ SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... (production key)
 **After** (CORRECT - Staging):
 ```env
 SUPABASE_URL=https://kmlhslmkdnjakkpluwup.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttbGhzbG1rZG5qYWtrcGx1d3VwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3MTQ5NzMsImV4cCI6MjA3NzI5MDk3M30.LA9ZqH3KShFU7da_25LjSJisHRkqd-8lkNlgOheNUW4
+SUPABASE_ANON_KEY=[REDACTED-SUPABASE-JWT]
 ```
 
 **Deployment Steps Completed**:

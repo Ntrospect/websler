@@ -42,7 +42,7 @@ The Supabase service role key was present in the frontend `.env` file at line 11
 
 ```ini
 # BEFORE (❌ VULNERABLE)
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttbGhzbG1rZG5qYWtrcGx1d3VwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTcxNDk3MywiZXhwIjoyMDc3MjkwOTczfQ.KUWeuXDnarwIGinYliVBLtuS9hxecpK2_2F7wms_kRs
+SUPABASE_SERVICE_ROLE_KEY=[REDACTED]
 ```
 
 #### Risk Analysis

@@ -39,13 +39,13 @@ Two separate Supabase projects for staging and production environments.
 
 **Anon Key** (Public - Safe for frontend):
 ```
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3bmJoc21mcHhkZmN2cW56ZGRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1MjAwOTMsImV4cCI6MjA3NzA5NjA5M30.2u4Fh_hrolEBeu5u_ADwZV_j3Bzq9szMBdkLZlc3b5M
+[REDACTED-SUPABASE-JWT]
 ```
 **Location in Code:** `lib/config/environment.dart` (hardcoded for release builds)
 
 **Service Role Key** (Private - Backend only):
 ```
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3bmJoc21mcHhkZmN2cW56ZGRjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTUyMDA5MywiZXhwIjoyMDc3MDk2MDkzfQ.V4GYD0Us3NhiNTOnakqqO44qLdRKFmVGOcj3UkjHTtA
+[REDACTED-SUPABASE-JWT]
 ```
 **Location:** `.env` file (not committed to git)
 
@@ -66,7 +66,7 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3bmJoc21
 
 **Anon Key** (Public - Safe for frontend):
 ```
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttbGhzbG1rZG5qYWtrcGx1d3VwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3MTQ5NzMsImV4cCI6MjA3NzI5MDk3M30.LA9ZqH3KShFU7da_25LjSJisHRkqd-8lkNlgOheNUW4
+[REDACTED-SUPABASE-JWT]
 ```
 **Location in Code:** `lib/config/environment.dart` (hardcoded for debug builds)
 
