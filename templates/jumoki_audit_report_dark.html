@@ -247,6 +247,24 @@
             {% endfor %}
         </div>
 
+        <div style="margin-bottom: 40px;">
+            <h2 class="section-title">Areas for Improvement</h2>
+            {% for weakness in weaknesses %}
+            <div class="list-item">• {{ weakness }}</div>
+            {% endfor %}
+        </div>
+
+        <div style="margin-bottom: 40px;">
+            <h2 class="section-title">Priority Recommendations</h2>
+            {% for rec in recommendations %}
+            <div style="margin-bottom: 16px; padding: 14px; background: #1f2937; border-left: 4px solid #9018ad; border-radius: 6px;">
+                <div style="font-weight: 600; color: #f9fafb; margin-bottom: 6px;">{{ rec.criterion }}</div>
+                <div style="font-size: 13px; color: #d1d5db;">{{ rec.recommendation }}</div>
+                <div style="font-size: 11px; color: #9ca3af; margin-top: 6px;">Priority: {{ rec.priority }}</div>
+            </div>
+            {% endfor %}
+        </div>
+
         <div class="cta-box">
             <h3>Ready to Improve Your Website?</h3>
             <p>Get a detailed improvement plan with actionable recommendations prioritized by impact.</p>

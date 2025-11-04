@@ -522,6 +522,7 @@ Summary:"""
                 'categories': audit_data.get('categories', []),
                 'recommendations': audit_data.get('recommendations', []),
                 'strengths': audit_data.get('strengths', []),
+                'weaknesses': audit_data.get('weaknesses', []),
             })
 
         # Render HTML template
