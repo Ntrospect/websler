@@ -48,6 +48,15 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  /// Safely notify listeners with error handling
+  void _safeNotifyListeners() {
+    try {
+      notifyListeners();
+    } catch (e) {
+      print('⚠️ Error notifying listeners: $e');
+    }
+  }
+
   /// Initialize auth service and restore session
   Future<void> initialize() async {
     _prefs = await SharedPreferences.getInstance();
@@ -177,7 +186,7 @@ class AuthService extends ChangeNotifier {
       print('✅ User signed out');
     }
 
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   /// Create user profile
@@ -268,7 +277,7 @@ class AuthService extends ChangeNotifier {
   }) async {
     try {
       _authState = auth_models.AuthState.authenticating();
-      notifyListeners();
+      _safeNotifyListeners();
 
       final response = await _supabase.auth.signInWithPassword(
         email: email,
@@ -287,7 +296,7 @@ class AuthService extends ChangeNotifier {
       print('❌ Sign in error: $e');
     }
 
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   // ============================================
@@ -488,6 +497,13 @@ class AuthService extends ChangeNotifier {
 
       while (attempts < maxAttempts) {
         await Future.delayed(const Duration(milliseconds: 500));
+
+        // CRITICAL FIX: Stop monitoring if user is already authenticated
+        // (e.g., they signed in via email/password while monitoring was running)
+        if (_authState.isAuthenticated) {
+          print('✅ User already authenticated - stopping email verification monitoring');
+          return; // Exit monitoring
+        }
 
         // Check if callback handler received a token
         if (_callbackHandler.hasToken && _callbackHandler.accessToken != null) {
