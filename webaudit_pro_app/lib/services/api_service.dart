@@ -172,7 +172,7 @@ class ApiService extends ChangeNotifier {
       }
 
       if (response.statusCode == 200) {
-        final filename = 'weblser-analysis-${DateTime.now().millisecondsSinceEpoch}.pdf';
+        final filename = 'websler-analysis-${DateTime.now().millisecondsSinceEpoch}.pdf';
 
         // Handle web platform - open in new tab
         if (kIsWeb) {
