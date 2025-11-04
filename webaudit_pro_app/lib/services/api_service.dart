@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
@@ -185,15 +186,38 @@ class ApiService extends ChangeNotifier {
 
         // Handle mobile/desktop - save to file
         debugPrint('💾 Saving PDF to file (mobile/desktop)');
-        final Directory? downloadsDir = await getDownloadsDirectory();
-        if (downloadsDir == null) {
-          throw Exception('Could not access Downloads directory');
+
+        // For iOS: Use app documents directory and share
+        // For Android: Use downloads directory
+        Directory? targetDir;
+
+        if (Platform.isIOS) {
+          // iOS: Use app's documents directory (Downloads folder not accessible)
+          targetDir = await getApplicationDocumentsDirectory();
+          debugPrint('📱 iOS detected - using app documents directory');
+        } else {
+          // Android/Windows/macOS: Use downloads directory
+          targetDir = await getDownloadsDirectory();
+          debugPrint('🤖 Android/Desktop detected - using downloads directory');
         }
 
-        final String filepath = '${downloadsDir.path}/$filename';
+        if (targetDir == null) {
+          throw Exception('Could not access storage directory');
+        }
+
+        final String filepath = '${targetDir.path}/$filename';
         final File file = File(filepath);
         await file.writeAsBytes(response.bodyBytes);
         debugPrint('✅ PDF saved to: $filepath');
+
+        // For iOS: Open share sheet to let user save to Files app
+        if (Platform.isIOS) {
+          debugPrint('📤 Opening iOS share sheet for PDF');
+          await Share.shareXFiles(
+            [XFile(filepath, mimeType: 'application/pdf')],
+            text: 'WebAudit Pro Analysis Report',
+          );
+        }
 
         return filepath;
       } else {

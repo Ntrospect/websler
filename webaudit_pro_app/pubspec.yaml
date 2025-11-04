@@ -53,6 +53,9 @@ dependencies:
   # File handling
   path_provider: ^2.1.0
 
+  # Share files (for iOS PDF sharing)
+  share_plus: ^7.2.1
+
   # Intl for date formatting
   intl: ^0.19.0
 
