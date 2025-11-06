@@ -15,8 +15,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Load environment variables from .env file
+  bool envLoaded = false;
   try {
     await dotenv.load(fileName: '.env');
+    envLoaded = true;
     print('✅ .env file loaded successfully');
   } catch (e) {
     print('⚠️ Note: .env file not found, using environment-based credentials');
@@ -24,10 +26,8 @@ void main() async {
 
   // Get Supabase credentials
   // Priority: .env overrides > AppConfig (environment-aware staging/production)
-  final supabaseUrl = dotenv.env['SUPABASE_URL'] ??
-      AppConfig.supabaseConfig.url;
-  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ??
-      AppConfig.supabaseConfig.anonKey;
+  final supabaseUrl = envLoaded ? (dotenv.env['SUPABASE_URL'] ?? AppConfig.supabaseConfig.url) : AppConfig.supabaseConfig.url;
+  final supabaseAnonKey = envLoaded ? (dotenv.env['SUPABASE_ANON_KEY'] ?? AppConfig.supabaseConfig.anonKey) : AppConfig.supabaseConfig.anonKey;
 
   // Verify credentials are available
   if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {

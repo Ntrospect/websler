@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../theme/dark_theme.dart';
 import '../services/theme_provider.dart';
+import '../utils/timezone_utils.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -20,6 +21,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _companyDetailsController;
   late TextEditingController _fullNameController;
   late TextEditingController _passwordController;
+  String _selectedTimezone = 'UTC'; // User's preferred timezone
   int _auditCount = 0;
   int _summaryCount = 0;
   bool _isLoadingStats = true;
@@ -50,6 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _logoUrlController.text = user.avatarUrl ?? '';
           _companyNameController.text = user.companyName ?? '';
           _companyDetailsController.text = user.companyDetails ?? '';
+          _selectedTimezone = user.timezone; // Load user's timezone
         });
       }
     } catch (e) {
@@ -380,6 +383,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _saveTimezone() async {
+    try {
+      final authService = context.read<AuthService>();
+
+      // Update user timezone in Supabase
+      await authService.updateUserProfile(timezone: _selectedTimezone);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Timezone preference saved'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error saving timezone: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _logout() {
     showDialog(
       context: context,
@@ -508,6 +538,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.w500,
                               ),
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              'Timezone',
+                              style: Theme.of(context).textTheme.labelSmall,
+                            ),
+                            const SizedBox(height: 8),
+                            DropdownButtonFormField<String>(
+                              value: _selectedTimezone,
+                              decoration: InputDecoration(
+                                prefixIcon: const Icon(Icons.public),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                              ),
+                              items: TimezoneUtils.timezoneIds.map((String tz) {
+                                return DropdownMenuItem<String>(
+                                  value: tz,
+                                  child: Text(
+                                    TimezoneUtils.getDisplayName(tz),
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                if (newValue != null) {
+                                  setState(() {
+                                    _selectedTimezone = newValue;
+                                  });
+                                  _saveTimezone(); // Auto-save on change
+                                }
+                              },
                             ),
                             const SizedBox(height: 16),
                             Row(

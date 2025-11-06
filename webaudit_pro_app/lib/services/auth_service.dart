@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/auth_state.dart' as auth_models;
 import '../models/user.dart';
+import '../utils/timezone_utils.dart';
 import 'api_service.dart';
 import 'auth_callback_handler.dart';
 
@@ -189,20 +190,73 @@ class AuthService extends ChangeNotifier {
     _safeNotifyListeners();
   }
 
-  /// Create user profile
+  /// Create user profile with auto-detected timezone
   Future<void> _loadOrCreateUserProfile(String userId, String email) async {
     try {
-      // Create new user profile
-      final newUser = AppUser(
+      // First try to fetch existing user profile from Supabase
+      final response = await _supabase
+          .from('users')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (response != null) {
+        // Existing user - load saved timezone
+        print('📥 Loading existing user profile from database...');
+        final savedTimezone = response['timezone'] as String? ?? 'UTC';
+        print('✅ Loaded saved timezone: $savedTimezone');
+
+        _currentUser = AppUser(
+          id: userId,
+          email: email,
+          timezone: savedTimezone,
+          fullName: response['full_name'] as String?,
+          companyName: response['company_name'] as String?,
+          companyDetails: response['company_details'] as String?,
+          avatarUrl: response['avatar_url'] as String?,
+          createdAt: DateTime.tryParse(response['created_at'] as String? ?? '') ?? DateTime.now(),
+          updatedAt: DateTime.tryParse(response['updated_at'] as String? ?? ''),
+        );
+        print('📝 User profile loaded: $email (timezone: $savedTimezone)');
+      } else {
+        // New user - auto-detect timezone and create profile
+        print('🆕 New user detected - creating profile with auto-detected timezone');
+        final detectedTimezone = TimezoneUtils.detectBrowserTimezone();
+        print('🌍 Auto-detected timezone for new user: $detectedTimezone');
+
+        final newUser = AppUser(
+          id: userId,
+          email: email,
+          timezone: detectedTimezone,
+          createdAt: DateTime.now(),
+        );
+
+        // Save new profile to Supabase (INSERT not UPSERT)
+        try {
+          await _supabase.from('users').insert({
+            'id': userId,
+            'email': email,
+            'timezone': detectedTimezone,
+            'created_at': DateTime.now().toIso8601String(),
+          });
+          print('✅ New user profile created with timezone: $detectedTimezone');
+        } catch (dbError) {
+          print('⚠️ Error saving user profile to Supabase: $dbError');
+        }
+
+        _currentUser = newUser;
+        print('📝 User profile set: $email (timezone: $detectedTimezone)');
+      }
+    } catch (e) {
+      print('❌ Error loading/creating user profile: $e');
+      // Fallback: create local profile with auto-detected timezone
+      final detectedTimezone = TimezoneUtils.detectBrowserTimezone();
+      _currentUser = AppUser(
         id: userId,
         email: email,
+        timezone: detectedTimezone,
         createdAt: DateTime.now(),
       );
-
-      _currentUser = newUser;
-      print('📝 User profile set: $email');
-    } catch (e) {
-      print('❌ Error setting user profile: $e');
     }
   }
 
@@ -404,6 +458,7 @@ class AuthService extends ChangeNotifier {
     String? avatarUrl,
     String? companyName,
     String? companyDetails,
+    String? timezone,
   }) async {
     if (_currentUser == null) return;
 
@@ -413,6 +468,7 @@ class AuthService extends ChangeNotifier {
         avatarUrl: avatarUrl,
         companyName: companyName,
         companyDetails: companyDetails,
+        timezone: timezone,
         updatedAt: DateTime.now(),
       );
 
@@ -426,6 +482,7 @@ class AuthService extends ChangeNotifier {
             'avatar_url': avatarUrl,
             'company_name': companyName,
             'company_details': companyDetails,
+            'timezone': timezone,
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', _currentUser!.id);

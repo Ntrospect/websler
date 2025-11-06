@@ -6,6 +6,7 @@ import '../services/theme_provider.dart';
 import '../models/website_analysis.dart';
 import '../models/compliance_audit.dart';
 import '../theme/spacing.dart';
+import '../utils/timezone_utils.dart';
 import '../widgets/styled_card.dart';
 import 'audit_results_screen.dart';
 import 'compliance/compliance_report_screen.dart';
@@ -171,10 +172,15 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
         );
       }
 
+      // Get user's timezone for PDF timestamp formatting
+      final authService = context.read<AuthService>();
+      final userTimezone = authService.currentUser?.timezone ?? 'UTC';
+
       // Generate PDF (use correct endpoint based on analysis type)
       await context.read<ApiService>().generatePdf(
         analysis.id,
         isAudit: analysis.isAudit,
+        timezone: userTimezone,
       );
 
       // Show success message
@@ -517,6 +523,14 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                 ? Colors.orange
                 : Colors.red;
 
+    // Get user's timezone for timestamp formatting
+    final authService = context.read<AuthService>();
+    final userTimezone = authService.currentUser?.timezone ?? 'UTC';
+    final formattedTimestamp = TimezoneUtils.formatToUserTimezone(
+      analysis.createdAt.toIso8601String(),
+      userTimezone,
+    );
+
     return StyledCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -551,7 +565,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                           ),
                     ),
                     Text(
-                      analysis.formattedDateTime,
+                      formattedTimestamp,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -670,6 +684,14 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
             ? Colors.orange
             : Colors.red;
 
+    // Get user's timezone for timestamp formatting
+    final authService = context.read<AuthService>();
+    final userTimezone = authService.currentUser?.timezone ?? 'UTC';
+    final formattedTimestamp = TimezoneUtils.formatToUserTimezone(
+      compliance.createdAt,
+      userTimezone,
+    );
+
     return StyledCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -749,7 +771,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                compliance.createdAt.split('T')[0],
+                formattedTimestamp,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: Colors.grey[600],
                 ),

@@ -133,6 +133,7 @@ class ApiService extends ChangeNotifier {
     String? logoUrl,
     String? companyName,
     String? companyDetails,
+    String? timezone,
     String template = 'jumoki',
   }) async {
     try {
@@ -148,6 +149,7 @@ class ApiService extends ChangeNotifier {
         final body = <String, dynamic>{};
         if (companyName != null) body['company_name'] = companyName;
         if (companyDetails != null) body['company_details'] = companyDetails;
+        if (timezone != null) body['timezone'] = timezone;
 
         response = await http.post(
           uri,
@@ -165,6 +167,7 @@ class ApiService extends ChangeNotifier {
             'logo_url': logoUrl,
             'company_name': companyName,
             'company_details': companyDetails,
+            'timezone': timezone,
             'template': template,
             'theme': 'light',
           }),

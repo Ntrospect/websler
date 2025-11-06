@@ -6,6 +6,7 @@ class AppUser {
   final String? companyName;
   final String? companyDetails;
   final String? avatarUrl;
+  final String timezone; // User's preferred timezone (IANA format, e.g., 'America/New_York')
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -16,6 +17,7 @@ class AppUser {
     this.companyName,
     this.companyDetails,
     this.avatarUrl,
+    this.timezone = 'UTC', // Default to UTC
     required this.createdAt,
     this.updatedAt,
   });
@@ -29,6 +31,7 @@ class AppUser {
       'company_name': companyName,
       'company_details': companyDetails,
       'avatar_url': avatarUrl,
+      'timezone': timezone,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };
@@ -43,6 +46,7 @@ class AppUser {
       companyName: map['company_name'] as String?,
       companyDetails: map['company_details'] as String?,
       avatarUrl: map['avatar_url'] as String?,
+      timezone: map['timezone'] as String? ?? 'UTC', // Default to UTC if not set
       createdAt: map['created_at'] is String
           ? DateTime.parse(map['created_at'] as String)
           : map['created_at'] as DateTime,
@@ -62,6 +66,7 @@ class AppUser {
     String? companyName,
     String? companyDetails,
     String? avatarUrl,
+    String? timezone,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -72,6 +77,7 @@ class AppUser {
       companyName: companyName ?? this.companyName,
       companyDetails: companyDetails ?? this.companyDetails,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      timezone: timezone ?? this.timezone,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
