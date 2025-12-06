@@ -36,6 +36,7 @@ from playwright.async_api import async_playwright
 from analyzer import WebsiteAnalyzer
 from audit_engine import WebsiteAuditor
 from report_generator import WebAuditReportGenerator
+from ai_audit_engine import AIDiscoverabilityAuditor
 
 
 # ==================== Models ====================
@@ -148,6 +149,90 @@ class ComplianceResponse(BaseModel):
     critical_issues: List[str]
     remediation_roadmap: Dict[str, List[str]]
     created_at: str
+
+
+# ==================== AI Audit Models ====================
+
+class AIAuditRequest(BaseModel):
+    """Request model for AI Discoverability audit."""
+    url: str
+    run_live_tests: bool = False  # Optional LLM visibility tests
+    timeout: int = 120
+
+
+class AICriterionScoreResponse(BaseModel):
+    """Response model for individual AI criterion score."""
+    score: float  # 0-10
+    weight: float  # 0-1
+    observation: str
+    findings: List[str]
+    recommendations: List[str]
+
+
+class AIRecommendationResponse(BaseModel):
+    """Response model for AI audit recommendation."""
+    title: str
+    criterion: str
+    description: str
+    cost_of_implementation: str  # Low/Medium/High
+    expected_improvement: str
+    roi_assessment: str  # High/Medium/Low
+    timeline: str  # Immediate/Short-term/Medium-term/Long-term
+    priority: int
+
+
+class RoadmapPhaseResponse(BaseModel):
+    """Response model for implementation roadmap phase."""
+    name: str
+    timeframe: str
+    tasks: List[str]
+    expected_score_improvement: str
+    total_effort: str
+
+
+class ImplementationRoadmapResponse(BaseModel):
+    """Response model for implementation roadmap."""
+    phases: List[RoadmapPhaseResponse]
+    total_improvement: str
+
+
+class LiveTestResultResponse(BaseModel):
+    """Response model for live LLM test result."""
+    llm_name: str
+    query: str
+    found: bool
+    accuracy: str
+    snippet: Optional[str]
+
+
+class LiveTestResultsResponse(BaseModel):
+    """Response model for collection of live test results."""
+    tests: List[LiveTestResultResponse]
+    overall_visibility_score: int
+
+
+class AIAuditResponse(BaseModel):
+    """Response model for complete AI Discoverability audit."""
+    id: str
+    url: str
+    website_name: str
+    audit_timestamp: str
+    overall_score: float  # 0-100
+    llm_confidence_score: int  # 0-100%
+    primary_identity: str
+    scores: Dict[str, AICriterionScoreResponse]
+    key_strengths: List[str]
+    critical_blockers: List[str]
+    recommendations: List[AIRecommendationResponse]
+    implementation_roadmap: ImplementationRoadmapResponse
+    predicted_prompts: List[str]
+    live_test_results: Optional[LiveTestResultsResponse] = None
+
+
+class AIAuditHistoryResponse(BaseModel):
+    """Response model for AI audit history."""
+    audits: List[AIAuditResponse]
+    total: int
 
 
 # ==================== Sentry Setup ====================
@@ -1634,6 +1719,583 @@ async def generate_compliance_pdf(
             status_code=500,
             detail=f"PDF generation failed: {str(e)}"
         )
+
+
+# ==================== AI Discoverability Audit Endpoints ====================
+
+AI_AUDIT_HISTORY_FILE = "ai_audit_history.json"
+
+
+def load_ai_audit_history() -> dict:
+    """Load AI audit history from file."""
+    if Path(AI_AUDIT_HISTORY_FILE).exists():
+        with open(AI_AUDIT_HISTORY_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
+
+def save_ai_audit_history(history: dict) -> None:
+    """Save AI audit history to file."""
+    with open(AI_AUDIT_HISTORY_FILE, 'w') as f:
+        json.dump(history, f, indent=2)
+
+
+def convert_ai_audit_to_response(audit_data: dict) -> AIAuditResponse:
+    """Convert stored AI audit data to response model."""
+    # Convert scores
+    scores = {}
+    for name, score_data in audit_data.get('scores', {}).items():
+        scores[name] = AICriterionScoreResponse(
+            score=score_data.get('score', 0),
+            weight=score_data.get('weight', 0),
+            observation=score_data.get('observation', ''),
+            findings=score_data.get('findings', []),
+            recommendations=score_data.get('recommendations', [])
+        )
+
+    # Convert recommendations
+    recommendations = []
+    for rec in audit_data.get('recommendations', []):
+        recommendations.append(AIRecommendationResponse(
+            title=rec.get('title', ''),
+            criterion=rec.get('criterion', ''),
+            description=rec.get('description', ''),
+            cost_of_implementation=rec.get('cost_of_implementation', 'Medium'),
+            expected_improvement=rec.get('expected_improvement', ''),
+            roi_assessment=rec.get('roi_assessment', 'Medium'),
+            timeline=rec.get('timeline', 'Short-term'),
+            priority=rec.get('priority', 1)
+        ))
+
+    # Convert roadmap
+    roadmap_data = audit_data.get('implementation_roadmap', {})
+    phases = []
+    for phase in roadmap_data.get('phases', []):
+        phases.append(RoadmapPhaseResponse(
+            name=phase.get('name', ''),
+            timeframe=phase.get('timeframe', ''),
+            tasks=phase.get('tasks', []),
+            expected_score_improvement=phase.get('expected_score_improvement', ''),
+            total_effort=phase.get('total_effort', '')
+        ))
+
+    roadmap = ImplementationRoadmapResponse(
+        phases=phases,
+        total_improvement=roadmap_data.get('total_improvement', '')
+    )
+
+    # Convert live test results if present
+    live_test_results = None
+    if audit_data.get('live_test_results'):
+        lt_data = audit_data['live_test_results']
+        tests = []
+        for test in lt_data.get('tests', []):
+            tests.append(LiveTestResultResponse(
+                llm_name=test.get('llm_name', ''),
+                query=test.get('query', ''),
+                found=test.get('found', False),
+                accuracy=test.get('accuracy', ''),
+                snippet=test.get('snippet')
+            ))
+        live_test_results = LiveTestResultsResponse(
+            tests=tests,
+            overall_visibility_score=lt_data.get('overall_visibility_score', 0)
+        )
+
+    return AIAuditResponse(
+        id=audit_data.get('id', ''),
+        url=audit_data.get('url', ''),
+        website_name=audit_data.get('website_name', ''),
+        audit_timestamp=audit_data.get('audit_timestamp', ''),
+        overall_score=audit_data.get('overall_score', 0),
+        llm_confidence_score=audit_data.get('llm_confidence_score', 0),
+        primary_identity=audit_data.get('primary_identity', ''),
+        scores=scores,
+        key_strengths=audit_data.get('key_strengths', []),
+        critical_blockers=audit_data.get('critical_blockers', []),
+        recommendations=recommendations,
+        implementation_roadmap=roadmap,
+        predicted_prompts=audit_data.get('predicted_prompts', []),
+        live_test_results=live_test_results
+    )
+
+
+@app.post("/api/ai-audit", response_model=AIAuditResponse)
+async def run_ai_audit(
+    request: AIAuditRequest,
+    user_id: str = Depends(get_current_user)
+):
+    """
+    Run AI Discoverability audit on a website.
+
+    Evaluates how visible the website is to AI-powered search tools
+    (ChatGPT, Claude, Perplexity, etc.) using a 7-criteria framework.
+
+    Args:
+        request: AIAuditRequest with URL and optional live test flag
+        user_id: Authenticated user ID (injected via dependency)
+
+    Returns:
+        AIAuditResponse with scores, recommendations, and roadmap
+    """
+    try:
+        api_key = os.getenv('ANTHROPIC_API_KEY')
+        if not api_key:
+            raise HTTPException(
+                status_code=500,
+                detail="ANTHROPIC_API_KEY environment variable not set"
+            )
+
+        print(f"🚀 Starting AI Discoverability Audit for: {request.url}")
+
+        # Run the audit
+        auditor = AIDiscoverabilityAuditor(timeout=request.timeout, api_key=api_key)
+        result = auditor.audit(request.url, run_live_tests=request.run_live_tests)
+
+        # Convert to dict for storage
+        audit_dict = auditor.to_dict(result)
+        audit_dict['user_id'] = user_id
+
+        # Store in local history
+        history = load_ai_audit_history()
+        history[result.id] = audit_dict
+        save_ai_audit_history(history)
+
+        # Store in Supabase if available
+        if supabase_service:
+            try:
+                supabase_service.table('ai_audits').insert({
+                    'id': result.id,
+                    'user_id': user_id,
+                    'url': result.url,
+                    'website_name': result.website_name,
+                    'overall_score': result.overall_score,
+                    'llm_confidence_score': result.llm_confidence_score,
+                    'primary_identity': result.primary_identity,
+                    'scores': audit_dict.get('scores'),
+                    'key_strengths': result.key_strengths,
+                    'critical_blockers': result.critical_blockers,
+                    'recommendations': audit_dict.get('recommendations'),
+                    'implementation_roadmap': audit_dict.get('implementation_roadmap'),
+                    'predicted_prompts': result.predicted_prompts,
+                    'live_test_results': audit_dict.get('live_test_results'),
+                    'run_live_tests': request.run_live_tests
+                }).execute()
+                print(f"✅ AI Audit saved to Supabase: {result.id}")
+            except Exception as db_error:
+                print(f"⚠️ Failed to save to Supabase (continuing): {db_error}")
+                sentry_sdk.capture_exception(db_error)
+
+        print(f"✅ AI Audit complete. Score: {result.overall_score}/100")
+        return convert_ai_audit_to_response(audit_dict)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise HTTPException(
+            status_code=500,
+            detail=f"AI Audit failed: {str(e)}"
+        )
+
+
+@app.get("/api/ai-audit/{audit_id}", response_model=AIAuditResponse)
+async def get_ai_audit(
+    audit_id: str,
+    user_id: str = Depends(get_current_user)
+):
+    """
+    Retrieve a specific AI Discoverability audit by ID.
+
+    Args:
+        audit_id: UUID of the audit
+        user_id: Authenticated user ID
+
+    Returns:
+        AIAuditResponse
+    """
+    # Try Supabase first
+    if supabase_service:
+        try:
+            response = supabase_service.table('ai_audits').select('*').eq('id', audit_id).eq('user_id', user_id).execute()
+            if response.data and len(response.data) > 0:
+                return convert_ai_audit_to_response(response.data[0])
+        except Exception as e:
+            print(f"⚠️ Supabase lookup failed: {e}")
+
+    # Fallback to local history
+    history = load_ai_audit_history()
+    if audit_id not in history:
+        raise HTTPException(status_code=404, detail="AI Audit not found")
+
+    audit_data = history[audit_id]
+    if audit_data.get('user_id') != user_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    return convert_ai_audit_to_response(audit_data)
+
+
+@app.get("/api/ai-audit/history/list", response_model=AIAuditHistoryResponse)
+async def get_ai_audit_history(
+    user_id: str = Depends(get_current_user),
+    limit: int = Query(50, ge=1, le=200)
+):
+    """
+    Get AI audit history for authenticated user.
+
+    Args:
+        user_id: Authenticated user ID
+        limit: Maximum number of audits to return
+
+    Returns:
+        AIAuditHistoryResponse with list of audits
+    """
+    audits = []
+
+    # Try Supabase first
+    if supabase_service:
+        try:
+            response = supabase_service.table('ai_audits').select('*').eq('user_id', user_id).order('created_at', desc=True).limit(limit).execute()
+            if response.data:
+                for audit_data in response.data:
+                    audits.append(convert_ai_audit_to_response(audit_data))
+                return AIAuditHistoryResponse(audits=audits, total=len(audits))
+        except Exception as e:
+            print(f"⚠️ Supabase history fetch failed: {e}")
+
+    # Fallback to local history
+    history = load_ai_audit_history()
+    user_audits = [
+        (aid, data) for aid, data in history.items()
+        if data.get('user_id') == user_id
+    ]
+
+    # Sort by timestamp (newest first)
+    sorted_audits = sorted(
+        user_audits,
+        key=lambda x: x[1].get('audit_timestamp', ''),
+        reverse=True
+    )[:limit]
+
+    for audit_id, audit_data in sorted_audits:
+        audit_data['id'] = audit_id
+        audits.append(convert_ai_audit_to_response(audit_data))
+
+    return AIAuditHistoryResponse(audits=audits, total=len(user_audits))
+
+
+@app.delete("/api/ai-audit/{audit_id}")
+async def delete_ai_audit(
+    audit_id: str,
+    user_id: str = Depends(get_current_user)
+):
+    """
+    Delete an AI Discoverability audit.
+
+    Args:
+        audit_id: UUID of the audit to delete
+        user_id: Authenticated user ID
+
+    Returns:
+        Success message
+    """
+    deleted = False
+
+    # Delete from Supabase
+    if supabase_service:
+        try:
+            response = supabase_service.table('ai_audits').delete().eq('id', audit_id).eq('user_id', user_id).execute()
+            if response.data:
+                deleted = True
+        except Exception as e:
+            print(f"⚠️ Supabase delete failed: {e}")
+
+    # Delete from local history
+    history = load_ai_audit_history()
+    if audit_id in history:
+        audit_data = history[audit_id]
+        if audit_data.get('user_id') == user_id:
+            del history[audit_id]
+            save_ai_audit_history(history)
+            deleted = True
+
+    if not deleted:
+        raise HTTPException(status_code=404, detail="AI Audit not found or access denied")
+
+    return {"status": "deleted", "id": audit_id}
+
+
+@app.get("/api/ai-audit/generate-pdf/{audit_id}")
+async def generate_ai_audit_pdf(
+    audit_id: str,
+    user_id: str = Depends(get_current_user)
+):
+    """
+    Generate PDF report for an AI Discoverability audit.
+
+    Args:
+        audit_id: UUID of the audit
+        user_id: Authenticated user ID
+
+    Returns:
+        PDF file as attachment
+    """
+    # Get audit data
+    audit_data = None
+
+    # Try Supabase first
+    if supabase_service:
+        try:
+            response = supabase_service.table('ai_audits').select('*').eq('id', audit_id).eq('user_id', user_id).execute()
+            if response.data and len(response.data) > 0:
+                audit_data = response.data[0]
+        except Exception as e:
+            print(f"⚠️ Supabase lookup failed: {e}")
+
+    # Fallback to local history
+    if not audit_data:
+        history = load_ai_audit_history()
+        if audit_id in history:
+            audit_data = history[audit_id]
+            if audit_data.get('user_id') != user_id:
+                raise HTTPException(status_code=403, detail="Access denied")
+
+    if not audit_data:
+        raise HTTPException(status_code=404, detail="AI Audit not found")
+
+    try:
+        # Generate HTML for PDF
+        html_content = generate_ai_audit_html(audit_data)
+
+        # Generate PDF with Playwright
+        pdf_path = f"/tmp/ai_audit_{audit_id}.pdf"
+
+        async with async_playwright() as p:
+            browser = await p.chromium.launch()
+            page = await browser.new_page()
+            await page.set_content(html_content, wait_until='networkidle')
+            await page.pdf(
+                path=pdf_path,
+                format='A4',
+                margin={
+                    'top': '0.5in',
+                    'right': '0.5in',
+                    'bottom': '0.5in',
+                    'left': '0.5in'
+                },
+                print_background=True
+            )
+            await browser.close()
+
+        # Generate filename
+        website_name = audit_data.get('website_name', 'unknown')
+        domain_clean = website_name.replace(' ', '-').replace('.', '-')[:30]
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"ai-audit_{domain_clean}_{timestamp}.pdf"
+
+        return FileResponse(
+            path=pdf_path,
+            media_type="application/pdf",
+            filename=filename
+        )
+
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise HTTPException(
+            status_code=500,
+            detail=f"PDF generation failed: {str(e)}"
+        )
+
+
+def generate_ai_audit_html(audit_data: dict) -> str:
+    """Generate HTML report for AI Discoverability audit."""
+
+    # Score color helper
+    def get_score_color(score: float) -> str:
+        if score >= 8:
+            return "#10B981"  # Green
+        elif score >= 6:
+            return "#F59E0B"  # Amber
+        else:
+            return "#EF4444"  # Red
+
+    # ROI badge color
+    def get_roi_color(roi: str) -> str:
+        if roi == "High":
+            return "#10B981"
+        elif roi == "Medium":
+            return "#F59E0B"
+        return "#EF4444"
+
+    overall_score = audit_data.get('overall_score', 0)
+    overall_color = get_score_color(overall_score / 10)
+
+    # Build criteria scores HTML
+    scores_html = ""
+    for name, score_data in audit_data.get('scores', {}).items():
+        score = score_data.get('score', 0)
+        weight = score_data.get('weight', 0) * 100
+        color = get_score_color(score)
+        bar_width = int(score * 10)
+
+        scores_html += f"""
+        <div class="criterion-card">
+            <div class="criterion-header">
+                <span class="criterion-name">{name}</span>
+                <span class="criterion-weight">({weight:.0f}% weight)</span>
+            </div>
+            <div class="score-bar">
+                <div class="score-fill" style="width: {bar_width}%; background-color: {color};"></div>
+            </div>
+            <div class="score-value" style="color: {color};">{score:.1f}/10</div>
+            <p class="observation">{score_data.get('observation', '')}</p>
+        </div>
+        """
+
+    # Build recommendations HTML
+    recommendations_html = ""
+    for rec in audit_data.get('recommendations', [])[:8]:
+        roi_color = get_roi_color(rec.get('roi_assessment', 'Medium'))
+        recommendations_html += f"""
+        <div class="recommendation-card">
+            <div class="rec-header">
+                <span class="rec-priority">#{rec.get('priority', 0)}</span>
+                <span class="rec-title">{rec.get('title', '')}</span>
+                <span class="roi-badge" style="background-color: {roi_color};">{rec.get('roi_assessment', '')} ROI</span>
+            </div>
+            <p class="rec-description">{rec.get('description', '')}</p>
+            <div class="rec-meta">
+                <span>Cost: {rec.get('cost_of_implementation', '')}</span>
+                <span>Timeline: {rec.get('timeline', '')}</span>
+                <span>Impact: {rec.get('expected_improvement', '')}</span>
+            </div>
+        </div>
+        """
+
+    # Build roadmap HTML
+    roadmap_html = ""
+    for phase in audit_data.get('implementation_roadmap', {}).get('phases', []):
+        tasks_html = "".join([f"<li>{task}</li>" for task in phase.get('tasks', [])])
+        roadmap_html += f"""
+        <div class="phase-card">
+            <h4>{phase.get('name', '')} <span class="phase-timeframe">({phase.get('timeframe', '')})</span></h4>
+            <ul>{tasks_html}</ul>
+            <p class="phase-meta">Score: {phase.get('expected_score_improvement', '')} | Effort: {phase.get('total_effort', '')}</p>
+        </div>
+        """
+
+    # Build predicted prompts HTML
+    prompts_html = "".join([
+        f'<div class="prompt-bubble">{prompt}</div>'
+        for prompt in audit_data.get('predicted_prompts', [])
+    ])
+
+    # Build strengths and blockers
+    strengths_html = "".join([f"<li class='strength'>✅ {s}</li>" for s in audit_data.get('key_strengths', [])])
+    blockers_html = "".join([f"<li class='blocker'>{b}</li>" for b in audit_data.get('critical_blockers', [])])
+
+    html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>AI Discoverability Audit - {audit_data.get('website_name', '')}</title>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.6; }}
+        .container {{ max-width: 800px; margin: 0 auto; padding: 20px; }}
+        .header {{ background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 24px; }}
+        .header h1 {{ font-size: 24px; margin-bottom: 8px; }}
+        .header .url {{ opacity: 0.9; font-size: 14px; }}
+        .score-card {{ background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }}
+        .main-score {{ font-size: 64px; font-weight: bold; color: {overall_color}; }}
+        .confidence {{ font-size: 18px; color: #64748b; margin-top: 8px; }}
+        .identity {{ background: #f1f5f9; padding: 16px; border-radius: 8px; margin-top: 16px; font-style: italic; }}
+        .section {{ background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }}
+        .section h2 {{ font-size: 18px; color: #6366f1; margin-bottom: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }}
+        .criterion-card {{ background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 12px; }}
+        .criterion-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }}
+        .criterion-name {{ font-weight: 600; }}
+        .criterion-weight {{ color: #94a3b8; font-size: 12px; }}
+        .score-bar {{ height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }}
+        .score-fill {{ height: 100%; border-radius: 4px; transition: width 0.3s; }}
+        .score-value {{ text-align: right; font-weight: bold; margin-top: 4px; }}
+        .observation {{ font-size: 13px; color: #64748b; margin-top: 8px; }}
+        .recommendation-card {{ background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid #6366f1; }}
+        .rec-header {{ display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }}
+        .rec-priority {{ background: #6366f1; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }}
+        .rec-title {{ font-weight: 600; flex: 1; }}
+        .roi-badge {{ color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }}
+        .rec-description {{ font-size: 13px; color: #475569; margin-bottom: 8px; }}
+        .rec-meta {{ font-size: 11px; color: #94a3b8; display: flex; gap: 16px; }}
+        .phase-card {{ background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 12px; }}
+        .phase-card h4 {{ color: #6366f1; margin-bottom: 8px; }}
+        .phase-timeframe {{ color: #94a3b8; font-weight: normal; font-size: 13px; }}
+        .phase-card ul {{ margin-left: 20px; margin-bottom: 8px; }}
+        .phase-card li {{ font-size: 13px; margin-bottom: 4px; }}
+        .phase-meta {{ font-size: 12px; color: #64748b; }}
+        .prompt-bubble {{ background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 10px 16px; border-radius: 16px; margin-bottom: 8px; font-size: 13px; display: inline-block; margin-right: 8px; }}
+        .strength {{ color: #10B981; }}
+        .blocker {{ color: #EF4444; }}
+        ul {{ margin-left: 20px; }}
+        li {{ margin-bottom: 6px; }}
+        .footer {{ text-align: center; color: #94a3b8; font-size: 12px; margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AI Discoverability Audit Report</h1>
+            <div class="url">{audit_data.get('url', '')}</div>
+            <div class="url" style="margin-top: 4px; opacity: 0.7;">Generated: {audit_data.get('audit_timestamp', '')[:10]}</div>
+        </div>
+
+        <div class="score-card">
+            <div class="main-score">{overall_score:.0f}</div>
+            <div style="font-size: 14px; color: #64748b;">out of 100</div>
+            <div class="confidence">LLM Confidence Score: {audit_data.get('llm_confidence_score', 0)}%</div>
+            <div class="identity">"{audit_data.get('primary_identity', '')}"</div>
+        </div>
+
+        <div class="section">
+            <h2>7-Criteria Evaluation</h2>
+            {scores_html}
+        </div>
+
+        <div class="section">
+            <h2>Key Strengths</h2>
+            <ul>{strengths_html}</ul>
+        </div>
+
+        {"<div class='section'><h2>Critical Blockers</h2><ul>" + blockers_html + "</ul></div>" if blockers_html else ""}
+
+        <div class="section">
+            <h2>Priority Recommendations</h2>
+            {recommendations_html}
+        </div>
+
+        <div class="section">
+            <h2>Implementation Roadmap</h2>
+            {roadmap_html}
+            <p style="font-size: 13px; color: #6366f1; margin-top: 12px; font-weight: 600;">
+                Total Improvement Potential: {audit_data.get('implementation_roadmap', {}).get('total_improvement', '')}
+            </p>
+        </div>
+
+        <div class="section">
+            <h2>Predicted AI Prompts</h2>
+            <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">Questions users might ask LLMs that this site could answer:</p>
+            {prompts_html}
+        </div>
+
+        <div class="footer">
+            Generated by Websler Pro AI Audit • websler.pro
+        </div>
+    </div>
+</body>
+</html>
+"""
+    return html
 
 
 # ==================== Main ====================

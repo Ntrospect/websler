@@ -12,6 +12,7 @@ import '../models/analysis.dart';
 import '../models/audit_result.dart';
 import '../models/website_analysis.dart';
 import '../models/compliance_audit.dart';
+import '../models/ai_audit_result.dart';
 import '../utils/env_loader.dart';
 import '../utils/pdf_utils.dart';
 import '../config/environment.dart';
@@ -718,6 +719,200 @@ class ApiService extends ChangeNotifier {
       } catch (e) {
         print('Error triggering PDF blob download: $e');
       }
+    }
+  }
+
+  // ==================== AI Discoverability Audit Methods ====================
+
+  /// Run an AI Discoverability Audit on a website
+  /// Evaluates 7 criteria for LLM/AI search visibility
+  Future<AIAuditResult> runAIAudit(
+    String url, {
+    bool runLiveTests = false,
+    int timeout = 180,
+  }) async {
+    if (_authToken == null || _authToken!.isEmpty) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      debugPrint('[AI Audit] Starting AI discoverability audit for: $url');
+      debugPrint('[AI Audit] API URL: $_apiUrl/api/ai-audit');
+
+      final response = await http.post(
+        Uri.parse('$_apiUrl/api/ai-audit'),
+        headers: _buildHeaders(),
+        body: jsonEncode({
+          'url': url,
+          'run_live_tests': runLiveTests,
+        }),
+      ).timeout(Duration(seconds: timeout));
+
+      debugPrint('[AI Audit] Response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        debugPrint('[AI Audit] Audit completed successfully');
+        return AIAuditResult.fromJson(jsonDecode(response.body));
+      } else {
+        final errorBody = response.body;
+        debugPrint('[AI Audit] Server error: ${response.statusCode}');
+        debugPrint('[AI Audit] Response body: $errorBody');
+        throw Exception('Server error ${response.statusCode}: $errorBody');
+      }
+    } on TimeoutException catch (e) {
+      debugPrint('[AI Audit] Request timeout: $e');
+      throw Exception('Request timeout - AI audit took too long. Please try again.');
+    } catch (e) {
+      debugPrint('[AI Audit] Error: $e');
+      throw Exception('Error running AI audit: $e');
+    }
+  }
+
+  /// Get a specific AI audit result by ID
+  Future<AIAuditResult> getAIAudit(String auditId) async {
+    if (_authToken == null || _authToken!.isEmpty) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('$_apiUrl/api/ai-audit/$auditId'),
+        headers: _buildHeaders(),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return AIAuditResult.fromJson(jsonDecode(response.body));
+      } else {
+        throw Exception('Failed to get AI audit: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching AI audit: $e');
+    }
+  }
+
+  /// Get AI audit history
+  Future<List<AIAuditResult>> getAIAuditHistory({int limit = 100}) async {
+    if (_authToken == null || _authToken!.isEmpty) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('$_apiUrl/api/ai-audit/history/list?limit=$limit'),
+        headers: _buildHeaders(),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final audits = (data['audits'] as List)
+            .map((item) => AIAuditResult.fromJson(item as Map<String, dynamic>))
+            .toList();
+        return audits;
+      } else if (response.statusCode == 404 || response.statusCode == 401) {
+        // No audits or not authorized - return empty list
+        return [];
+      } else {
+        throw Exception('Failed to get AI audit history: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching AI audit history: $e');
+    }
+  }
+
+  /// Delete an AI audit from history
+  Future<void> deleteAIAudit(String auditId) async {
+    if (_authToken == null || _authToken!.isEmpty) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      final response = await http.delete(
+        Uri.parse('$_apiUrl/api/ai-audit/$auditId'),
+        headers: _buildHeaders(),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw Exception('Failed to delete AI audit: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error deleting AI audit: $e');
+    }
+  }
+
+  /// Generate PDF report for an AI audit
+  Future<String> generateAIAuditPdf(
+    String auditId, {
+    String? companyName,
+    String? companyDetails,
+  }) async {
+    if (_authToken == null || _authToken!.isEmpty) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      debugPrint('[AI Audit] Generating PDF for audit: $auditId');
+
+      // Build query parameters
+      final queryParams = <String, String>{};
+      if (companyName != null) queryParams['company_name'] = companyName;
+      if (companyDetails != null) queryParams['company_details'] = companyDetails;
+
+      final uri = Uri.parse('$_apiUrl/api/ai-audit/generate-pdf/$auditId')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+      final response = await http.get(
+        uri,
+        headers: _buildHeaders(),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode != 200) {
+        throw Exception('PDF generation failed: ${response.body}');
+      }
+
+      final filename = 'ai-discoverability-audit-${DateTime.now().millisecondsSinceEpoch}.pdf';
+
+      // Handle web platform - open in new tab
+      if (kIsWeb) {
+        debugPrint('[AI Audit] Opening PDF in new tab (web)');
+        final success = await PdfUtils.openPdfInNewTab(response.bodyBytes, filename);
+        if (!success) {
+          throw Exception('Failed to open PDF in new tab');
+        }
+        return ''; // Return empty string for web (no file path)
+      }
+
+      // Handle mobile/desktop - save to file
+      debugPrint('[AI Audit] Saving PDF to file (mobile/desktop)');
+
+      Directory? targetDir;
+      if (Platform.isIOS) {
+        targetDir = await getApplicationDocumentsDirectory();
+      } else {
+        targetDir = await getDownloadsDirectory();
+      }
+
+      if (targetDir == null) {
+        throw Exception('Could not access storage directory');
+      }
+
+      final String filepath = '${targetDir.path}/$filename';
+      final File file = File(filepath);
+      await file.writeAsBytes(response.bodyBytes);
+      debugPrint('[AI Audit] PDF saved to: $filepath');
+
+      // For iOS: Open share sheet
+      if (Platform.isIOS) {
+        debugPrint('[AI Audit] Opening iOS share sheet');
+        await Share.shareXFiles(
+          [XFile(filepath, mimeType: 'application/pdf')],
+          text: 'AI Discoverability Audit Report',
+        );
+      }
+
+      return filepath;
+    } catch (e) {
+      debugPrint('[AI Audit] Error generating PDF: $e');
+      throw Exception('Error generating AI audit PDF: $e');
     }
   }
 }

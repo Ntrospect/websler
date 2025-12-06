@@ -10,6 +10,7 @@ import 'splash_screen.dart';
 import 'home_screen.dart';
 import 'history_screen.dart';
 import 'settings_screen.dart';
+import 'ai_audit_screen.dart';
 
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({Key? key}) : super(key: key);
@@ -228,10 +229,12 @@ class _MainAppState extends State<MainApp> {
 
   /// Clean navigation structure:
   /// - Home: Websler summary generator
+  /// - AI Audit: AI Discoverability Audit
   /// - History: Unified history (summaries + audits with upgrade option)
   /// - Settings: Theme & preferences
   final List<Widget> _screens = [
     const HomeScreen(),
+    const AIAuditScreen(),
     const HistoryScreen(),
     const SettingsScreen(),
   ];
@@ -312,10 +315,15 @@ class _MainAppState extends State<MainApp> {
             child: _screens[_selectedIndex],
           ),
           bottomNavigationBar: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
             items: const [
               BottomNavigationBarItem(
                 icon: Icon(Icons.home),
                 label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.psychology),
+                label: 'AI Audit',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.history),
