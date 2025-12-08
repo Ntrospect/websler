@@ -5,11 +5,13 @@ import '../services/auth_service.dart';
 import '../services/theme_provider.dart';
 import '../models/website_analysis.dart';
 import '../models/compliance_audit.dart';
+import '../models/ai_audit_result.dart';
 import '../theme/spacing.dart';
 import '../utils/timezone_utils.dart';
 import '../widgets/styled_card.dart';
 import 'audit_results_screen.dart';
 import 'compliance/compliance_report_screen.dart';
+import 'ai_audit_results_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({Key? key}) : super(key: key);
@@ -23,6 +25,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
   bool _isScrolled = false;
   List<WebsiteAnalysis> _history = [];
   List<ComplianceAudit> _complianceHistory = [];
+  List<AIAuditResult> _aiAuditHistory = [];
   late ScrollController _scrollController;
   late TabController _tabController;
 
@@ -31,7 +34,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
     super.initState();
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     WidgetsBinding.instance.addObserver(this);
     _loadHistory();
   }
@@ -71,14 +74,16 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
     try {
       final apiService = context.read<ApiService>();
 
-      // Load both summaries/audits and compliance audits
+      // Load summaries/audits, compliance audits, and AI audits
       final unifiedHistory = await apiService.getUnifiedHistory(limit: 50);
       final complianceAudits = await apiService.getComplianceHistory(limit: 50);
+      final aiAudits = await apiService.getAIAuditHistory(limit: 50);
 
       if (mounted) {
         setState(() {
           _history = unifiedHistory;
           _complianceHistory = complianceAudits;
+          _aiAuditHistory = aiAudits;
         });
       }
     } catch (e) {
@@ -97,6 +102,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
         setState(() {
           _history = [];
           _complianceHistory = [];
+          _aiAuditHistory = [];
         });
       }
     } finally {
@@ -144,6 +150,78 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
           SnackBar(
             content: Text('Error: $e'),
             backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _deleteAIAudit(AIAuditResult aiAudit) async {
+    try {
+      await context.read<ApiService>().deleteAIAudit(aiAudit.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('AI audit deleted')),
+        );
+        _loadHistory();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _downloadAIAuditPdf(AIAuditResult aiAudit) async {
+    try {
+      // Show loading indicator
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                ),
+                SizedBox(width: 12),
+                Text('Generating AI Audit PDF...'),
+              ],
+            ),
+            duration: Duration(seconds: 30),
+          ),
+        );
+      }
+
+      // Generate PDF
+      await context.read<ApiService>().generateAIAuditPdf(aiAudit.id);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ PDF downloaded successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error downloading PDF: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -346,6 +424,12 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                               color: Colors.green,
                             ),
                             _buildTab(
+                              label: 'AI Audit',
+                              icon: Icons.psychology,
+                              count: _aiAuditHistory.length,
+                              color: Colors.teal,
+                            ),
+                            _buildTab(
                               label: 'Compliance',
                               icon: Icons.gavel,
                               count: _complianceHistory.length,
@@ -383,6 +467,17 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                           onRefresh: _loadHistory,
                           itemCount: _audits.length,
                           itemBuilder: (context, index) => _buildHistoryCard(_audits[index]),
+                        ),
+                        // AI Audit Tab
+                        _buildTabContent(
+                          isEmpty: _aiAuditHistory.isEmpty,
+                          isLoading: _isLoading,
+                          emptyTitle: 'No AI Audits Yet',
+                          emptyMessage: 'Evaluate your AI discoverability',
+                          emptyIcon: Icons.psychology,
+                          onRefresh: _loadHistory,
+                          itemCount: _aiAuditHistory.length,
+                          itemBuilder: (context, index) => _buildAIAuditCard(_aiAuditHistory[index]),
                         ),
                         // Compliance Tab
                         _buildTabContent(
@@ -815,6 +910,191 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                   ).then((_) => _loadHistory());
                 },
                 child: const Text('View Report'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAIAuditCard(AIAuditResult aiAudit) {
+    // Color based on overall score (0-100)
+    final scoreColor = aiAudit.overallScore >= 70
+        ? Colors.green
+        : aiAudit.overallScore >= 40
+            ? Colors.orange
+            : Colors.red;
+
+    // Get user's timezone for timestamp formatting
+    final authService = context.read<AuthService>();
+    final userTimezone = authService.currentUser?.timezone ?? 'UTC';
+    final formattedTimestamp = TimezoneUtils.formatToUserTimezone(
+      aiAudit.auditTimestamp.toIso8601String(),
+      userTimezone,
+    );
+
+    return StyledCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.teal.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.psychology,
+                  color: Colors.teal,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'AI Discoverability Audit',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: Colors.teal,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Raleway',
+                            fontSize: 18,
+                          ),
+                    ),
+                    Text(
+                      formattedTimestamp,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: scoreColor,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${aiAudit.overallScore.toStringAsFixed(1)}/100',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // URL
+          Text(
+            'URL',
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
+          SelectableText(
+            aiAudit.url,
+            maxLines: 1,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // Primary Identity (AI Summary)
+          if (aiAudit.primaryIdentity != null) ...[
+            Text(
+              'AI Summary',
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
+            Text(
+              aiAudit.primaryIdentity!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+
+          // LLM Confidence Score
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome, size: 16, color: Colors.teal),
+              const SizedBox(width: 4),
+              Text(
+                'LLM Confidence: ${aiAudit.llmConfidenceScore}%',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Colors.teal,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // Action Buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AIAuditResultsScreen(
+                        auditResult: aiAudit,
+                      ),
+                    ),
+                  ).then((_) => _loadHistory());
+                },
+                icon: const Icon(Icons.open_in_new, size: 16),
+                label: const Text('View Audit'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              PopupMenuButton(
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'download',
+                    child: Row(
+                      children: [
+                        Icon(Icons.file_download_outlined),
+                        SizedBox(width: 8),
+                        Text('Download PDF'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text(
+                          'Delete',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                onSelected: (value) {
+                  if (value == 'download') {
+                    _downloadAIAuditPdf(aiAudit);
+                  } else if (value == 'delete') {
+                    _deleteAIAudit(aiAudit);
+                  }
+                },
+                icon: const Icon(Icons.more_vert),
               ),
             ],
           ),
