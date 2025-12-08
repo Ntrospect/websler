@@ -1802,11 +1802,14 @@ def convert_ai_audit_to_response(audit_data: dict) -> AIAuditResponse:
             overall_visibility_score=lt_data.get('overall_visibility_score', 0)
         )
 
+    # Handle both audit_timestamp (local) and created_at (Supabase)
+    timestamp = audit_data.get('audit_timestamp') or audit_data.get('created_at', '')
+
     return AIAuditResponse(
         id=audit_data.get('id', ''),
         url=audit_data.get('url', ''),
         website_name=audit_data.get('website_name', ''),
-        audit_timestamp=audit_data.get('audit_timestamp', ''),
+        audit_timestamp=timestamp,
         overall_score=audit_data.get('overall_score', 0),
         llm_confidence_score=audit_data.get('llm_confidence_score', 0),
         primary_identity=audit_data.get('primary_identity', ''),
